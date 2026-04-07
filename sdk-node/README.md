@@ -57,6 +57,8 @@ app.post("/webhooks/email", express.raw({ type: "application/json" }), (req, res
   - returns a typed `EmailReceivedEvent`
 - `parseWebhookEvent(input)`
   - parses a JSON payload into a known webhook event or `UnknownEvent`
+  - validates known event types against the canonical schema
+  - throws `WebhookValidationError` for malformed known events
 - `validateEmailReceivedEvent(input)`
   - validates an `email.received` payload and returns the typed event
 - `safeValidateEmailReceivedEvent(input)`

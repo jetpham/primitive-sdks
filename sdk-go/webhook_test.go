@@ -51,12 +51,22 @@ func TestValidateEmailReceivedEvent(t *testing.T) {
 }
 
 func TestParseWebhookEvent(t *testing.T) {
-	event, err := ParseWebhookEvent(map[string]any{"event": "email.received", "id": "evt_1"})
+	payload := loadJSONFixture(t, "webhook", "valid-email-received.json")
+	event, err := ParseWebhookEvent(payload)
 	if err != nil {
 		t.Fatalf("ParseWebhookEvent returned error: %v", err)
 	}
 	if !IsEmailReceivedEvent(event) {
 		t.Fatal("expected email.received event")
+	}
+
+	if _, err := ParseWebhookEvent(map[string]any{"event": "email.received", "id": "evt_1"}); err == nil {
+		t.Fatal("expected validation error for malformed known event")
+	} else {
+		var validationErr *WebhookValidationError
+		if !errors.As(err, &validationErr) {
+			t.Fatalf("expected WebhookValidationError, got %v", err)
+		}
 	}
 
 	unknown, err := ParseWebhookEvent(map[string]any{"event": "email.bounced", "id": "evt_2"})

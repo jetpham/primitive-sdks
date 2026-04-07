@@ -142,28 +142,6 @@ import {
 import { parseJsonBody } from "./parsing.js";
 
 /**
- * Cast input to EmailReceivedEvent after verifying event type.
- * NOTE: This only checks the event field, not the full schema.
- * For full validation, use handleWebhook() or validateEmailReceivedEvent().
- * @internal
- */
-function asEmailReceivedEvent(input: unknown): EmailReceivedEvent {
-  const obj = input as Record<string, unknown>;
-
-  if (obj.event !== "email.received") {
-    throw new WebhookPayloadError(
-      "PAYLOAD_UNKNOWN_EVENT",
-      `Unknown event type "${obj.event}"`,
-      obj.event === undefined
-        ? "The 'event' field is undefined. Make sure the webhook payload is complete."
-        : `Expected "email.received" event but got "${obj.event}".`,
-    );
-  }
-
-  return input as EmailReceivedEvent;
-}
-
-/**
  * Parse a webhook payload, returning typed events for known types
  * and UnknownEvent for future event types.
  *
@@ -171,12 +149,16 @@ function asEmailReceivedEvent(input: unknown): EmailReceivedEvent {
  * your code won't break - you'll receive an UnknownEvent that you can
  * handle or ignore.
  *
- * For most use cases, prefer `handleWebhook()` which also verifies
- * the signature and validates the payload schema.
+ * Known event types are validated against the canonical schema. Unknown
+ * event types are returned as-is for forward compatibility.
+ *
+ * For most use cases, prefer `handleWebhook()` which also verifies the
+ * signature before parsing the payload.
  *
  * @param input - The parsed JSON payload
  * @returns Typed event for known types, UnknownEvent for unknown types
  * @throws WebhookPayloadError if the input is not a valid webhook structure
+ * @throws WebhookValidationError if a known event fails schema validation
  *
  * @example
  * ```typescript
@@ -237,10 +219,10 @@ export function parseWebhookEvent(input: unknown): WebhookEvent {
     );
   }
 
-  // Route to specific handler for known events
+    // Route to specific handler for known events
   switch (obj.event) {
     case "email.received":
-      return asEmailReceivedEvent(input);
+      return validateEmailReceivedEvent(input);
 
     default:
       // Return as UnknownEvent - user can handle it

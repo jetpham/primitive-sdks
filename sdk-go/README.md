@@ -48,6 +48,12 @@ func deref(value *string) string {
 }
 ```
 
+## Parsing Events
+
+- `ParseWebhookEvent(input)` strictly validates known event types such as `email.received`
+- malformed known events return `*WebhookValidationError`
+- unknown future event types are returned as `UnknownEvent`
+
 ## Development
 
 From `primitive-sdks/sdk-go`:

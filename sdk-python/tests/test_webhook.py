@@ -28,7 +28,82 @@ from primitive_sdk import (
 
 def test_parse_webhook_event_handles_known_and_unknown_events() -> None:
     assert is_email_received_event(
-        parse_webhook_event({"event": "email.received", "id": "x"})
+        parse_webhook_event(
+            {
+                "id": "evt_abc123",
+                "event": "email.received",
+                "version": "2025-12-14",
+                "delivery": {
+                    "endpoint_id": "ep_xyz789",
+                    "attempt": 1,
+                    "attempted_at": "2025-12-14T12:00:00Z",
+                },
+                "email": {
+                    "id": "em_def456",
+                    "received_at": "2025-12-14T11:59:50Z",
+                    "smtp": {
+                        "helo": "mail.example.com",
+                        "mail_from": "sender@example.com",
+                        "rcpt_to": ["recipient@domain.com"],
+                    },
+                    "headers": {
+                        "message_id": "<abc123@example.com>",
+                        "subject": "Test Email",
+                        "from": "sender@example.com",
+                        "to": "recipient@domain.com",
+                        "date": "Sat, 14 Dec 2025 11:59:50 +0000",
+                    },
+                    "content": {
+                        "raw": {
+                            "included": True,
+                            "encoding": "base64",
+                            "max_inline_bytes": 262144,
+                            "size_bytes": 1234,
+                            "sha256": "a" * 64,
+                            "data": "SGVsbG8gV29ybGQ=",
+                        },
+                        "download": {
+                            "url": "https://api.primitive.dev/v1/downloads/raw/token123",
+                            "expires_at": "2025-12-15T12:00:00Z",
+                        },
+                    },
+                    "parsed": {
+                        "status": "complete",
+                        "error": None,
+                        "body_text": "Hello World",
+                        "body_html": "<p>Hello World</p>",
+                        "reply_to": None,
+                        "cc": None,
+                        "bcc": None,
+                        "in_reply_to": None,
+                        "references": None,
+                        "attachments": [],
+                        "attachments_download_url": None,
+                    },
+                    "analysis": {},
+                    "auth": {
+                        "spf": "pass",
+                        "dmarc": "pass",
+                        "dmarcPolicy": "reject",
+                        "dmarcFromDomain": "example.com",
+                        "dmarcSpfAligned": True,
+                        "dmarcDkimAligned": True,
+                        "dmarcSpfStrict": False,
+                        "dmarcDkimStrict": False,
+                        "dkimSignatures": [
+                            {
+                                "domain": "example.com",
+                                "selector": "default",
+                                "result": "pass",
+                                "aligned": True,
+                                "keyBits": 2048,
+                                "algo": "rsa-sha256",
+                            }
+                        ],
+                    },
+                },
+            }
+        )
     )
     unknown = cast(
         dict[str, Any],
@@ -48,6 +123,12 @@ def test_parse_webhook_event_rejects_bad_inputs() -> None:
         parse_webhook_event({"event": 123})
     with pytest.raises(WebhookPayloadError):
         parse_webhook_event([{"event": "email.received"}])
+
+
+def test_parse_webhook_event_rejects_malformed_known_event() -> None:
+    with pytest.raises(WebhookValidationError) as error:
+        parse_webhook_event({"event": "email.received", "id": "x"})
+    assert error.value.code == "SCHEMA_VALIDATION_FAILED"
 
 
 def test_handle_webhook_round_trip(valid_payload: dict[str, Any]) -> None:

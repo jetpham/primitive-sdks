@@ -38,6 +38,12 @@ def webhook_handler(body: bytes, headers: dict[str, str]) -> dict[str, object]:
         return {"error": error.code, "message": str(error)}
 ```
 
+## Parsing Events
+
+- `parse_webhook_event(input)` strictly validates known event types such as `email.received`
+- malformed known events raise `WebhookValidationError`
+- unknown future event types are returned as dictionaries for forward compatibility
+
 ## Development
 
 ```bash

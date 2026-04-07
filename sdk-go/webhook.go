@@ -167,11 +167,11 @@ func ParseWebhookEvent(input any) (WebhookEvent, error) {
 		return nil, NewWebhookPayloadError("PAYLOAD_MISSING_EVENT", "Missing 'event' field in payload", "This doesn't look like a Primitive webhook payload.", nil)
 	}
 	if eventName == string(EventTypeEmailReceived) {
-		event, err := decodeInto[EmailReceivedEvent](obj)
+		event, err := ValidateEmailReceivedEvent(obj)
 		if err != nil {
 			return nil, err
 		}
-		return event, nil
+		return *event, nil
 	}
 	unknown := UnknownEvent{Event: eventName, Payload: obj}
 	if id, ok := obj["id"].(string); ok {

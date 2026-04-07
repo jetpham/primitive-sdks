@@ -9,8 +9,6 @@ from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from typing import Any, TypedDict
 
-from pydantic import ValidationError
-
 from primitive_sdk.errors import (
     RawEmailDecodeError,
     WebhookPayloadError,
@@ -243,10 +241,7 @@ def parse_webhook_event(input: Any = _UNDEFINED) -> WebhookEvent:
             "This doesn't look like a Primitive webhook payload.",
         )
     if input["event"] == "email.received":
-        try:
-            return EmailReceivedEvent.model_validate(input)
-        except ValidationError:
-            return input
+        return validate_email_received_event(input)
     return input  # type: ignore[return-value]
 
 

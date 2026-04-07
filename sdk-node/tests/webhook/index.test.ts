@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   type EmailReceivedEvent,
@@ -19,16 +21,31 @@ import {
 } from "../../src/webhook/index.js";
 import { signWebhookPayload } from "../../src/webhook/signing.js";
 
+const validPayload = JSON.parse(
+  readFileSync(
+    resolve(
+      import.meta.dirname,
+      "../../../test-fixtures/webhook/valid-email-received.json",
+    ),
+    "utf8",
+  ),
+) as EmailReceivedEvent;
+
 describe("parseWebhookEvent", () => {
   describe("known events", () => {
     it("returns EmailReceivedEvent for email.received", () => {
-      const input = { event: "email.received", id: "test-123" };
-      const result = parseWebhookEvent(input);
+      const result = parseWebhookEvent(validPayload);
 
       expect(result.event).toBe("email.received");
       if (result.event === "email.received") {
-        expect(result.id).toBe("test-123");
+        expect(result.id).toBe("evt_abc123");
       }
+    });
+
+    it("throws validation error for malformed known events", () => {
+      expect(() =>
+        parseWebhookEvent({ event: "email.received", id: "test-123" }),
+      ).toThrow(WebhookValidationError);
     });
   });
 
@@ -104,82 +121,6 @@ describe("parseWebhookEvent", () => {
 
 describe("handleWebhook", () => {
   const secret = "test-webhook-secret";
-
-  // Valid payload that matches the Zod schema
-  const validPayload = {
-    id: "evt_abc123",
-    event: "email.received",
-    version: "2025-12-14",
-    delivery: {
-      endpoint_id: "ep_xyz789",
-      attempt: 1,
-      attempted_at: "2025-12-14T12:00:00Z",
-    },
-    email: {
-      id: "em_def456",
-      received_at: "2025-12-14T11:59:50Z",
-      smtp: {
-        helo: "mail.example.com",
-        mail_from: "sender@example.com",
-        rcpt_to: ["recipient@domain.com"],
-      },
-      headers: {
-        message_id: "<abc123@example.com>",
-        subject: "Test Email",
-        from: "sender@example.com",
-        to: "recipient@domain.com",
-        date: "Sat, 14 Dec 2025 11:59:50 +0000",
-      },
-      content: {
-        raw: {
-          included: true,
-          encoding: "base64",
-          max_inline_bytes: 262144,
-          size_bytes: 1234,
-          sha256: "a".repeat(64),
-          data: "SGVsbG8gV29ybGQ=",
-        },
-        download: {
-          url: "https://api.primitive.dev/v1/downloads/raw/token123",
-          expires_at: "2025-12-15T12:00:00Z",
-        },
-      },
-      parsed: {
-        status: "complete",
-        error: null,
-        body_text: "Hello World",
-        body_html: "<p>Hello World</p>",
-        reply_to: null,
-        cc: null,
-        bcc: null,
-        in_reply_to: null,
-        references: null,
-        attachments: [],
-        attachments_download_url: null,
-      },
-      analysis: {},
-      auth: {
-        spf: "pass",
-        dmarc: "pass",
-        dmarcPolicy: "reject",
-        dmarcFromDomain: "example.com",
-        dmarcSpfAligned: true,
-        dmarcDkimAligned: true,
-        dmarcSpfStrict: false,
-        dmarcDkimStrict: false,
-        dkimSignatures: [
-          {
-            domain: "example.com",
-            selector: "default",
-            result: "pass",
-            aligned: true,
-            keyBits: 2048,
-            algo: "rsa-sha256",
-          },
-        ],
-      },
-    },
-  };
 
   describe("success cases", () => {
     it("verifies, parses, and validates a valid webhook", () => {
