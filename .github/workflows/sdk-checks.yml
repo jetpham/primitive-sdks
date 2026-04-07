@@ -1,13 +1,20 @@
 name: SDK Checks
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   push:
   pull_request:
 
 jobs:
   node:
-    name: Node
+    name: Node (${{ matrix.node-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [22, 24]
     defaults:
       run:
         working-directory: sdk-node
@@ -20,7 +27,7 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: ${{ matrix.node-version }}
           cache: pnpm
           cache-dependency-path: sdk-node/pnpm-lock.yaml
 
@@ -57,8 +64,12 @@ jobs:
           node --input-type=module -e "const pkg = await import('@primitivedotdev/sdk-node'); if (typeof pkg.handleWebhook !== 'function') throw new Error('missing handleWebhook export')"
 
   python:
-    name: Python
+    name: Python (${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.14"]
     defaults:
       run:
         working-directory: sdk-python
@@ -67,7 +78,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@v8.0.0
         with:
-          python-version: "3.14"
+          python-version: ${{ matrix.python-version }}
 
       - name: Sync dependencies
         run: uv sync --dev
@@ -95,8 +106,12 @@ jobs:
           "$smoke_dir/venv/bin/python" -c "import primitive_sdk; primitive_sdk.handle_webhook"
 
   go:
-    name: Go
+    name: Go (${{ matrix.go-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: ["1.23", "1.25"]
     defaults:
       run:
         working-directory: sdk-go
@@ -109,7 +124,7 @@ jobs:
 
       - uses: actions/setup-go@v6
         with:
-          go-version: "1.25"
+          go-version: ${{ matrix.go-version }}
           cache-dependency-path: sdk-go/go.sum
 
       - name: Check generated go artifacts
