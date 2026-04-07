@@ -1,5 +1,7 @@
 # Primitive SDKs
 
+[![SDK Checks](https://github.com/jetpham/primitive-sdks/actions/workflows/sdk-checks.yml/badge.svg?branch=main)](https://github.com/jetpham/primitive-sdks/actions/workflows/sdk-checks.yml)
+
 Monorepo for Primitive webhook SDKs.
 
 The repository currently contains:
