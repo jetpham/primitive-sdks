@@ -19,6 +19,7 @@
             basedpyright
             biome
             git
+            go
             jq
             nil
             nix
