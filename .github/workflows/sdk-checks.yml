@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: primitive-sdks/sdk-node
+        working-directory: sdk-node
     steps:
       - uses: actions/checkout@v4
 
@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: primitive-sdks/sdk-node/pnpm-lock.yaml
+          cache-dependency-path: sdk-node/pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: primitive-sdks/sdk-python
+        working-directory: sdk-python
     steps:
       - uses: actions/checkout@v4
 
@@ -73,21 +73,21 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: primitive-sdks/sdk-node/pnpm-lock.yaml
+          cache-dependency-path: sdk-node/pnpm-lock.yaml
 
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.13"
 
       - name: Install node dependencies
-        working-directory: primitive-sdks/sdk-node
+        working-directory: sdk-node
         run: pnpm install --frozen-lockfile
 
       - name: Sync python dependencies
-        working-directory: primitive-sdks/sdk-python
+        working-directory: sdk-python
         run: uv sync --dev
 
       - name: Run shared fixture checks
         run: |
-          cd primitive-sdks/sdk-node && pnpm exec vitest run tests/webhook/shared-fixtures.test.ts
+          cd sdk-node && pnpm exec vitest run tests/webhook/shared-fixtures.test.ts
           cd ../sdk-python && uv run pytest tests/test_shared_fixtures.py
