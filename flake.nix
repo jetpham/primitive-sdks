@@ -16,6 +16,7 @@
       {
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
+            basedpyright
             biome
             git
             jq
@@ -25,8 +26,16 @@
             nixfmt
             nodejs_22
             pnpm
+            python3
+            python3Packages.build
+            python3Packages.datamodel-code-generator
+            python3Packages.hatchling
+            python3Packages.pytest
+            python3Packages.twine
             ripgrep
+            ruff
             typescript-language-server
+            uv
           ];
 
           shellHook = ''

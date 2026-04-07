@@ -1,0 +1,93 @@
+name: SDK Checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  node:
+    name: Node
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: primitive-sdks/sdk-node
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: primitive-sdks/sdk-node/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run node checks
+        run: |
+          pnpm typecheck
+          pnpm exec vitest run \
+            tests/webhook/auth.test.ts \
+            tests/webhook/encoding.test.ts \
+            tests/webhook/index.test.ts \
+            tests/webhook/signing.test.ts \
+            tests/webhook/validation.test.ts
+
+  python:
+    name: Python
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: primitive-sdks/sdk-python
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.13"
+
+      - name: Sync dependencies
+        run: uv sync --dev
+
+      - name: Run python checks
+        run: |
+          uv run ruff check .
+          uv run basedpyright
+          uv run pytest tests -k "not shared_fixtures"
+
+  shared:
+    name: Shared
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: primitive-sdks/sdk-node/pnpm-lock.yaml
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install node dependencies
+        working-directory: primitive-sdks/sdk-node
+        run: pnpm install --frozen-lockfile
+
+      - name: Sync python dependencies
+        working-directory: primitive-sdks/sdk-python
+        run: uv sync --dev
+
+      - name: Run shared fixture checks
+        run: |
+          cd primitive-sdks/sdk-node && pnpm exec vitest run tests/webhook/shared-fixtures.test.ts
+          cd ../sdk-python && uv run pytest tests/test_shared_fixtures.py
