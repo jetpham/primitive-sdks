@@ -43,10 +43,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/primitivedotdev/sdk-node.git"
+    "url": "git+https://github.com/primitivedotdev/primitive-sdks.git",
+    "directory": "sdk-node"
   },
   "bugs": {
-    "url": "https://github.com/primitivedotdev/sdk-node/issues"
+    "url": "https://github.com/primitivedotdev/primitive-sdks/issues"
   },
   "homepage": "https://primitive.dev",
   "engines": {
