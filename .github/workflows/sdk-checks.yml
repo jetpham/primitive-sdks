@@ -43,6 +43,19 @@ jobs:
             tests/webhook/signing.test.ts \
             tests/webhook/validation.test.ts
 
+      - name: Build node package
+        run: pnpm build
+
+      - name: Smoke test packed node package
+        run: |
+          pack_dir=$(mktemp -d)
+          smoke_dir=$(mktemp -d)
+          tarball=$(npm pack --pack-destination "$pack_dir")
+          npm init -y --prefix "$smoke_dir"
+          npm install --prefix "$smoke_dir" "$pack_dir/$tarball"
+          cd "$smoke_dir"
+          node --input-type=module -e "const pkg = await import('@primitivedotdev/sdk-node'); if (typeof pkg.handleWebhook !== 'function') throw new Error('missing handleWebhook export')"
+
   python:
     name: Python
     runs-on: ubuntu-latest
@@ -70,6 +83,16 @@ jobs:
           uv run ruff check .
           uv run basedpyright
           uv run pytest tests -k "not shared_fixtures"
+
+      - name: Build python package
+        run: uv run python -m build
+
+      - name: Smoke test built python wheel
+        run: |
+          smoke_dir=$(mktemp -d)
+          python -m venv "$smoke_dir/venv"
+          "$smoke_dir/venv/bin/pip" install dist/*.whl
+          "$smoke_dir/venv/bin/python" -c "import primitive_sdk; primitive_sdk.handle_webhook"
 
   go:
     name: Go
