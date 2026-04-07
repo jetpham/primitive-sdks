@@ -27,6 +27,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check generated node artifacts
+        run: |
+          pnpm generate
+          git diff --exit-code -- src/schema.generated.ts src/types.generated.ts src/validator.generated.ts
+
       - name: Run node checks
         run: |
           pnpm typecheck
@@ -53,6 +58,12 @@ jobs:
       - name: Sync dependencies
         run: uv sync --dev
 
+      - name: Check generated python artifacts
+        run: |
+          uv run python scripts/generate_schema_module.py
+          uv run python scripts/generate_models.py
+          git diff --exit-code -- src/primitive_sdk/schemas/email_received_event.schema.json src/primitive_sdk/models_generated.py
+
       - name: Run python checks
         run: |
           uv run ruff check .
@@ -68,10 +79,19 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
       - uses: actions/setup-go@v6
         with:
           go-version: "1.25"
           cache-dependency-path: sdk-go/go.sum
+
+      - name: Check generated go artifacts
+        run: |
+          python scripts/generate_schema_module.py
+          git diff --exit-code -- schema_generated.go
 
       - name: Run go checks
         run: |
