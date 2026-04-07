@@ -34,6 +34,7 @@ jobs:
 
       - name: Run node checks
         run: |
+          pnpm lint
           pnpm typecheck
           pnpm exec vitest run \
             tests/webhook/auth.test.ts \
@@ -95,6 +96,8 @@ jobs:
 
       - name: Run go checks
         run: |
+          test -z "$(gofmt -l .)"
+          go vet ./...
           go test ./...
 
   shared:
