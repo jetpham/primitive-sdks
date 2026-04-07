@@ -69,7 +69,9 @@ function formatValidationIssue(error: ErrorObject): {
   }
 }
 
-function createValidationError(errors: readonly ErrorObject[]): WebhookValidationError {
+function createValidationError(
+  errors: readonly ErrorObject[],
+): WebhookValidationError {
   if (errors.length === 0) {
     return new WebhookValidationError(
       "payload",

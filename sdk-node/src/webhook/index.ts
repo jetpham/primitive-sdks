@@ -219,7 +219,7 @@ export function parseWebhookEvent(input: unknown): WebhookEvent {
     );
   }
 
-    // Route to specific handler for known events
+  // Route to specific handler for known events
   switch (obj.event) {
     case "email.received":
       return validateEmailReceivedEvent(input);

@@ -150,7 +150,9 @@ export function validateEmailAuth(auth: EmailAuth): ValidateEmailAuthResult {
 
     // DMARC pass with DKIM alignment = highest confidence
     if (auth.dmarcDkimAligned && alignedSigs.length > 0) {
-      const domains = alignedSigs.map((sig: DkimSignature) => sig.domain).join(", ");
+      const domains = alignedSigs
+        .map((sig: DkimSignature) => sig.domain)
+        .join(", ");
       reasons.unshift(`DMARC passed with DKIM alignment (${domains})`);
       verdict = "legit";
       confidence = weakKeySignatures.length > 0 ? "medium" : "high";
@@ -243,7 +245,9 @@ export function validateEmailAuth(auth: EmailAuth): ValidateEmailAuthResult {
       (sig: DkimSignature) => sig.result === "pass",
     );
     if (passingDkim.length > 0) {
-      const domains = passingDkim.map((sig: DkimSignature) => sig.domain).join(", ");
+      const domains = passingDkim
+        .map((sig: DkimSignature) => sig.domain)
+        .join(", ");
       reasons.push("No DMARC record for sender domain");
       reasons.push(`DKIM verified for: ${domains}`);
       if (auth.spf === "pass") {
