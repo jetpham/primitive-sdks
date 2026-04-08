@@ -33,8 +33,8 @@ def main() -> None:
         ],
         check=True,
     )
-    subprocess.run([sys.executable, "-m", "ruff", "check", "--fix", str(OUTPUT)], check=True)
-    subprocess.run([sys.executable, "-m", "ruff", "format", str(OUTPUT)], check=True)
+    subprocess.run(["uv", "run", "--project", str(ROOT), "ruff", "check", "--fix", str(OUTPUT)], check=True)
+    subprocess.run(["uv", "run", "--project", str(ROOT), "ruff", "format", str(OUTPUT)], check=True)
 
 
 if __name__ == "__main__":
