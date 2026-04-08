@@ -7,6 +7,7 @@ Monorepo for Primitive webhook SDKs.
 The repository currently contains:
 
 - `sdk-node/` for the Node.js SDK
+- `contract-node/` for the server-side Node contract package
 - `sdk-python/` for the Python SDK
 - `sdk-go/` for the Go SDK
 - `json-schema/` for the canonical webhook schema
@@ -17,6 +18,7 @@ The repository currently contains:
 | SDK | Install target | README |
 | --- | --- | --- |
 | Node.js | `npm install @primitivedotdev/sdk-node` | `sdk-node/README.md` |
+| Contract Node | `npm install @primitivedotdev/contract-node` | `contract-node/README.md` |
 | Python | `pip install primitive-sdk` | `sdk-python/README.md` |
 | Go | `go get github.com/primitivedotdev/primitive-sdks/sdk-go` | `sdk-go/README.md` |
 
@@ -34,6 +36,7 @@ Each SDK implements the same core webhook workflow:
 ```text
 primitive-sdks/
   .github/workflows/
+  contract-node/
   json-schema/
   sdk-go/
   sdk-node/
@@ -61,7 +64,9 @@ make release-check
 The `Makefile` wraps each SDK's native commands. You can still run them directly from each SDK directory when needed:
 
 ```bash
-cd sdk-node && pnpm install && pnpm typecheck && pnpm test
+pnpm install
+cd sdk-node && pnpm typecheck && pnpm test
+cd contract-node && pnpm typecheck && pnpm test
 cd sdk-python && uv sync --dev && uv run pytest && uv run ruff check . && uv run basedpyright
 cd sdk-go && go test ./... && go test -run TestSharedCompatibilityFixtures ./...
 ```
@@ -71,6 +76,7 @@ cd sdk-go && go test ./... && go test -run TestSharedCompatibilityFixtures ./...
 `.github/workflows/sdk-checks.yml` runs:
 
 - Node SDK checks
+- Contract Node checks
 - Python SDK checks
 - Go SDK checks
 - shared fixture compatibility checks across all three SDKs

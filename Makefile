@@ -1,10 +1,11 @@
 .PHONY: node-install node-generate node-check-generated node-test node-check node-build node-smoke node-coverage
+.PHONY: contract-node-install contract-node-test contract-node-check contract-node-build contract-node-coverage
 .PHONY: python-sync python-generate python-check-generated python-test python-check python-build python-smoke python-coverage
 .PHONY: go-generate go-check-generated go-check go-build go-coverage
 .PHONY: shared-check check build release-check
 
 node-install:
-	pnpm install --frozen-lockfile --dir sdk-node
+	pnpm install --frozen-lockfile
 
 node-generate:
 	pnpm --dir sdk-node generate
@@ -28,6 +29,23 @@ node-smoke:
 
 node-coverage:
 	pnpm --dir sdk-node test:coverage
+
+contract-node-install:
+	pnpm install --frozen-lockfile
+
+contract-node-test: node-build
+	pnpm --dir contract-node test
+
+contract-node-check: node-build
+	if command -v biome >/dev/null 2>&1; then cd contract-node && biome check src/ tests/; else pnpm --dir contract-node lint; fi
+	pnpm --dir contract-node typecheck
+	$(MAKE) contract-node-test
+
+contract-node-build: node-build
+	pnpm --dir contract-node build
+
+contract-node-coverage: node-build
+	pnpm --dir contract-node test:coverage
 
 python-sync:
 	cd sdk-python && uv sync --dev
@@ -77,8 +95,8 @@ shared-check:
 	cd sdk-python && uv run pytest tests/test_shared_fixtures.py
 	cd sdk-go && go test -run TestSharedCompatibilityFixtures ./...
 
-check: node-check python-check go-check shared-check
+check: node-check contract-node-check python-check go-check shared-check
 
-build: node-build python-build
+build: node-build contract-node-build python-build
 
-release-check: node-check node-build node-smoke python-check python-build python-smoke go-check go-build shared-check
+release-check: node-check node-build node-smoke contract-node-check contract-node-build python-check python-build python-smoke go-check go-build shared-check

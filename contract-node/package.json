@@ -1,0 +1,52 @@
+{
+  "name": "@primitivedotdev/contract-node",
+  "version": "0.1.0",
+  "description": "Primitive server-side webhook contract tooling for Node.js",
+  "type": "module",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "sideEffects": false,
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check src/ tests/",
+    "lint:fix": "biome check --write src/ tests/",
+    "prepublishOnly": "pnpm build"
+  },
+  "keywords": ["primitive", "email", "webhook", "contract", "server"],
+  "author": "Primitive <support@primitive.dev>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/primitivedotdev/primitive-sdks.git",
+    "directory": "contract-node"
+  },
+  "bugs": {
+    "url": "https://github.com/primitivedotdev/primitive-sdks/issues"
+  },
+  "homepage": "https://primitive.dev",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@primitivedotdev/sdk-node": "workspace:*"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.10",
+    "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^2.1.8",
+    "tsdown": "^0.9.1",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
