@@ -91,6 +91,48 @@ describe("validation", () => {
     expect(event.id).toBe("evt_abc123");
   });
 
+  it("gives an old-style root payload message for non-objects", () => {
+    try {
+      validateEmailReceivedEvent("not an object");
+      throw new Error("expected validation to fail");
+    } catch (error) {
+      expect(error).toBeInstanceOf(WebhookValidationError);
+      const validationError = error as WebhookValidationError;
+      expect(validationError.field).toBe("payload");
+      expect(validationError.message).toBe(
+        "Expected webhook payload object but received string",
+      );
+      expect(validationError.suggestion).toContain("Webhook payloads must be objects");
+    }
+  });
+
+  it("gives an old-style root payload suggestion for undefined input", () => {
+    try {
+      validateEmailReceivedEvent(undefined);
+      throw new Error("expected validation to fail");
+    } catch (error) {
+      const validationError = error as WebhookValidationError;
+      expect(validationError.suggestion).toContain(
+        "Make sure you're passing the parsed JSON body",
+      );
+    }
+  });
+
+  it("gives an old-style root payload suggestion for null input", () => {
+    try {
+      validateEmailReceivedEvent(null);
+      throw new Error("expected validation to fail");
+    } catch (error) {
+      const validationError = error as WebhookValidationError;
+      expect(validationError.message).toBe(
+        "Expected webhook payload object but received null",
+      );
+      expect(validationError.suggestion).toContain(
+        "Did you forget to parse the JSON",
+      );
+    }
+  });
+
   it("throws WebhookValidationError for invalid payload", () => {
     expect(() => validateEmailReceivedEvent({})).toThrow(WebhookValidationError);
   });
@@ -183,7 +225,29 @@ describe("validation", () => {
       expect(error).toBeInstanceOf(WebhookValidationError);
       const validationError = error as WebhookValidationError;
       expect(validationError.field).toContain("email.auth.dkimSignatures");
-      expect(validationError.message).toContain("Invalid type for");
+      expect(validationError.message).toContain("expected string,null but got number");
+      expect(validationError.suggestion).toContain("Check that");
+    }
+  });
+
+  it("suggests not quoting numeric values for type mismatches", () => {
+    try {
+      validateEmailReceivedEvent({
+        ...validPayload,
+        delivery: {
+          ...validPayload.delivery,
+          attempt: "1",
+        },
+      });
+      throw new Error("expected validation to fail");
+    } catch (error) {
+      const validationError = error as WebhookValidationError;
+      expect(validationError.message).toContain(
+        "Invalid type for delivery.attempt: expected integer but got string",
+      );
+      expect(validationError.suggestion).toContain(
+        "Don't quote numeric values in JSON",
+      );
     }
   });
 
@@ -274,7 +338,7 @@ describe("validation", () => {
   });
 
   it("rejects javascript URLs in download.url", () => {
-    expect(() =>
+    try {
       validateEmailReceivedEvent({
         ...validPayload,
         email: {
@@ -287,8 +351,350 @@ describe("validation", () => {
             },
           },
         },
-      }),
-    ).toThrow(WebhookValidationError);
+      });
+      throw new Error("expected validation to fail");
+    } catch (error) {
+      const validationError = error as WebhookValidationError;
+      expect(validationError.message).toContain("must be a valid HTTPS URL");
+      expect(validationError.suggestion).toContain("complete URL including the scheme");
+    }
+  });
+
+  it("surfaces HTTPS-specific pattern guidance for url fields", async () => {
+    const mockedValidator = Object.assign(() => false, {
+      errors: [
+        {
+          instancePath: "/email/content/download/url",
+          keyword: "pattern",
+          params: { pattern: "^https://" },
+          schemaPath: "",
+        },
+      ],
+    });
+    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
+      default: mockedValidator,
+    }));
+
+    const { validateEmailReceivedEvent: validateWithMock } = await import(
+      "../../src/validation.js"
+    );
+
+    expect(() => validateWithMock(validPayload)).toThrowError(/valid HTTPS URL/);
+  });
+
+  it("formats enum validation failures with allowed values", async () => {
+    const mockedValidator = Object.assign(() => false, {
+      errors: [
+        {
+          instancePath: "/email/auth/spf",
+          keyword: "enum",
+          params: { allowedValues: ["pass", "fail", "none"] },
+          schemaPath: "",
+        },
+      ],
+    });
+    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
+      default: mockedValidator,
+    }));
+
+    const { validateEmailReceivedEvent: validateWithMock } = await import(
+      "../../src/validation.js"
+    );
+
+    try {
+      validateWithMock({
+        ...validPayload,
+        email: {
+          ...validPayload.email,
+          auth: { ...validPayload.email.auth, spf: "mystery" },
+        },
+      });
+      throw new Error("expected validation to fail");
+    } catch (error) {
+      const validationError = error as WebhookValidationError;
+      expect(validationError.message).toContain('got "mystery"');
+      expect(validationError.message).toContain('"pass", "fail", "none"');
+    }
+  });
+
+  it("handles enum validation failures when AJV omits allowed values", async () => {
+    const mockedValidator = Object.assign(() => false, {
+      errors: [
+        {
+          instancePath: "/email/auth/spf",
+          keyword: "enum",
+          params: {},
+          schemaPath: "",
+        },
+      ],
+    });
+    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
+      default: mockedValidator,
+    }));
+
+    const { validateEmailReceivedEvent: validateWithMock } = await import(
+      "../../src/validation.js"
+    );
+
+    try {
+      validateWithMock(validPayload);
+      throw new Error("expected validation to fail");
+    } catch (error) {
+      const validationError = error as WebhookValidationError;
+      expect(validationError.message).toContain("expected one of:");
+    }
+  });
+
+  it("falls back to a generic type message when AJV omits the expected type", async () => {
+    const mockedValidator = Object.assign(() => false, {
+      errors: [
+        {
+          instancePath: "/delivery/attempt",
+          keyword: "type",
+          params: {},
+          schemaPath: "",
+        },
+      ],
+    });
+    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
+      default: mockedValidator,
+    }));
+
+    const { validateEmailReceivedEvent: validateWithMock } = await import(
+      "../../src/validation.js"
+    );
+
+    expect(() => validateWithMock(validPayload)).toThrowError(/wrong type/);
+  });
+
+  it("uses explicit const suggestions for non-event fields", async () => {
+    const mockedValidator = Object.assign(() => false, {
+      errors: [
+        {
+          instancePath: "/email/content/raw/encoding",
+          keyword: "const",
+          params: { allowedValue: "base64" },
+          schemaPath: "",
+        },
+      ],
+    });
+    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
+      default: mockedValidator,
+    }));
+
+    const { validateEmailReceivedEvent: validateWithMock } = await import(
+      "../../src/validation.js"
+    );
+
+    try {
+      validateWithMock({
+        ...validPayload,
+        email: {
+          ...validPayload.email,
+          content: {
+            ...validPayload.email.content,
+            raw: { ...validPayload.email.content.raw, encoding: "utf8" },
+          },
+        },
+      });
+      throw new Error("expected validation to fail");
+    } catch (error) {
+      const validationError = error as WebhookValidationError;
+      expect(validationError.suggestion).toContain('Expected the literal value "base64"');
+    }
+  });
+
+  it("falls back to the generic const suggestion for non-event fields without allowed values", async () => {
+    const mockedValidator = Object.assign(() => false, {
+      errors: [
+        {
+          instancePath: "/email/content/raw/encoding",
+          keyword: "const",
+          params: {},
+          schemaPath: "",
+        },
+      ],
+    });
+    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
+      default: mockedValidator,
+    }));
+
+    const { validateEmailReceivedEvent: validateWithMock } = await import(
+      "../../src/validation.js"
+    );
+
+    try {
+      validateWithMock(validPayload);
+      throw new Error("expected validation to fail");
+    } catch (error) {
+      const validationError = error as WebhookValidationError;
+      expect(validationError.suggestion).toContain('"email.content.raw.encoding"');
+    }
+  });
+
+  it("omits the actual value when a const violation has no readable payload value", async () => {
+    const mockedValidator = Object.assign(() => false, {
+      errors: [
+        {
+          instancePath: "/email/content/raw/missingField",
+          keyword: "const",
+          params: { allowedValue: true },
+          schemaPath: "",
+        },
+      ],
+    });
+    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
+      default: mockedValidator,
+    }));
+
+    const { validateEmailReceivedEvent: validateWithMock } = await import(
+      "../../src/validation.js"
+    );
+
+    expect(() => validateWithMock(validPayload)).toThrowError(
+      /Invalid value for email.content.raw.missingField: expected true$/,
+    );
+  });
+
+  it("formats version pattern failures like the old validator", () => {
+    try {
+      validateEmailReceivedEvent({ ...validPayload, version: "not-a-date" });
+      throw new Error("expected validation to fail");
+    } catch (error) {
+      const validationError = error as WebhookValidationError;
+      expect(validationError.message).toBe('Invalid version format: "not-a-date"');
+      expect(validationError.suggestion).toContain("YYYY-MM-DD");
+    }
+  });
+
+  it("humanizes sha256 pattern failures", () => {
+    try {
+      validateEmailReceivedEvent({
+        ...validPayload,
+        email: {
+          ...validPayload.email,
+          content: {
+            ...validPayload.email.content,
+            raw: {
+              ...validPayload.email.content.raw,
+              sha256: "abc123",
+            },
+          },
+        },
+      });
+      throw new Error("expected validation to fail");
+    } catch (error) {
+      const validationError = error as WebhookValidationError;
+      expect(validationError.message).toContain(
+        "64-character hex SHA-256 string",
+      );
+    }
+  });
+
+  it("formats generic pattern failures with the regex context", async () => {
+    const mockedValidator = Object.assign(() => false, {
+      errors: [
+        {
+          instancePath: "/email/id",
+          keyword: "pattern",
+          params: { pattern: "^em_" },
+          schemaPath: "",
+        },
+      ],
+    });
+    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
+      default: mockedValidator,
+    }));
+
+    const { validateEmailReceivedEvent: validateWithMock } = await import(
+      "../../src/validation.js"
+    );
+
+    expect(() => validateWithMock(validPayload)).toThrowError(/must match pattern: \^em_/);
+  });
+
+  it("formats non-url format failures with generic format guidance", async () => {
+    const mockedValidator = Object.assign(() => false, {
+      errors: [
+        {
+          instancePath: "/email/id",
+          keyword: "format",
+          params: { format: "email" },
+          schemaPath: "",
+        },
+      ],
+    });
+    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
+      default: mockedValidator,
+    }));
+
+    const { validateEmailReceivedEvent: validateWithMock } = await import(
+      "../../src/validation.js"
+    );
+
+    try {
+      validateWithMock(validPayload);
+      throw new Error("expected validation to fail");
+    } catch (error) {
+      const validationError = error as WebhookValidationError;
+      expect(validationError.message).toContain("must be a valid email");
+      expect(validationError.suggestion).toContain(
+        'Check the format of "email.id"',
+      );
+    }
+  });
+
+  it("formats url format failures with URL guidance", async () => {
+    const mockedValidator = Object.assign(() => false, {
+      errors: [
+        {
+          instancePath: "/email/content/download/url",
+          keyword: "format",
+          params: { format: "uri" },
+          schemaPath: "",
+        },
+      ],
+    });
+    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
+      default: mockedValidator,
+    }));
+
+    const { validateEmailReceivedEvent: validateWithMock } = await import(
+      "../../src/validation.js"
+    );
+
+    try {
+      validateWithMock(validPayload);
+      throw new Error("expected validation to fail");
+    } catch (error) {
+      const validationError = error as WebhookValidationError;
+      expect(validationError.message).toContain("must be a valid URI");
+      expect(validationError.suggestion).toContain("complete URL including the scheme");
+    }
+  });
+
+  it("handles nested instance paths even when the payload is not traversable", async () => {
+    const mockedValidator = Object.assign(() => false, {
+      errors: [
+        {
+          instancePath: "/email/id",
+          keyword: "const",
+          params: { allowedValue: "em_123" },
+          schemaPath: "",
+        },
+      ],
+    });
+    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
+      default: mockedValidator,
+    }));
+
+    const { validateEmailReceivedEvent: validateWithMock } = await import(
+      "../../src/validation.js"
+    );
+
+    expect(() => validateWithMock("not an object")).toThrowError(
+      /Invalid value for email.id: expected "em_123"$/,
+    );
   });
 
   it("rejects http URLs in attachments_download_url", () => {
@@ -377,7 +783,7 @@ describe("validation", () => {
   });
 
   it("rejects zero forward attachments_limit", () => {
-    expect(() =>
+    try {
       validateEmailReceivedEvent({
         ...validPayload,
         email: {
@@ -392,8 +798,84 @@ describe("validation", () => {
             },
           },
         },
-      }),
-    ).toThrow(WebhookValidationError);
+      });
+      throw new Error("expected validation to fail");
+    } catch (error) {
+      const validationError = error as WebhookValidationError;
+      expect(validationError.message).toContain("must be >= 1");
+    }
+  });
+
+  it("formats minItems failures with item counts", () => {
+    try {
+      validateEmailReceivedEvent({
+        ...validPayload,
+        email: {
+          ...validPayload.email,
+          smtp: {
+            ...validPayload.email.smtp,
+            rcpt_to: [],
+          },
+        },
+      });
+      throw new Error("expected validation to fail");
+    } catch (error) {
+      const validationError = error as WebhookValidationError;
+      expect(validationError.message).toContain("must have at least 1 item");
+    }
+  });
+
+  it("formats maximum failures with numeric bounds", () => {
+    try {
+      validateEmailReceivedEvent({
+        ...validPayload,
+        email: {
+          ...validPayload.email,
+          auth: {
+            ...validPayload.email.auth,
+            dkimSignatures: [
+              { ...validPayload.email.auth.dkimSignatures[0], keyBits: 20000 },
+            ],
+          },
+        },
+      });
+      throw new Error("expected validation to fail");
+    } catch (error) {
+      const validationError = error as WebhookValidationError;
+      expect(validationError.message).toContain("must be <= 16384");
+    }
+  });
+
+  it("uses the default formatter for unsupported AJV keywords", async () => {
+    const mockedValidator = Object.assign(() => false, {
+      errors: [
+        {
+          instancePath: "/email/id",
+          keyword: "customKeyword",
+          params: {},
+          schemaPath: "",
+          message: "custom failure",
+        },
+      ],
+    });
+    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
+      default: mockedValidator,
+    }));
+
+    const { validateEmailReceivedEvent: validateWithMock } = await import(
+      "../../src/validation.js"
+    );
+
+    try {
+      validateWithMock(validPayload);
+      throw new Error("expected validation to fail");
+    } catch (error) {
+      const validationError = error as WebhookValidationError;
+      expect(validationError.message).toBe(
+        "Validation failed for email.id: custom failure",
+      );
+      expect(validationError.suggestion).toContain('"email.id"');
+    }
   });
 
   it("accepts valid integer forward attachment counters", () => {
