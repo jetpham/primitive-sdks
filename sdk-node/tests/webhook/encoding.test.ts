@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { bufferToString } from "../../src/webhook/encoding.js";
 import { WebhookPayloadError } from "../../src/webhook/errors.js";
 
@@ -75,6 +75,21 @@ describe("bufferToString", () => {
     } catch (e) {
       const err = e as WebhookPayloadError;
       expect(err.suggestion).toContain("base64");
+    }
+  });
+
+  it("drops non-Error decode causes", () => {
+    vi.spyOn(TextDecoder.prototype, "decode").mockImplementationOnce(() => {
+      throw "boom";
+    });
+
+    try {
+      bufferToString(Buffer.from("ok"), "request body");
+      throw new Error("expected bufferToString to throw");
+    } catch (error) {
+      const payloadError = error as WebhookPayloadError;
+      expect(payloadError.code).toBe("INVALID_ENCODING");
+      expect(payloadError.cause).toBeUndefined();
     }
   });
 });

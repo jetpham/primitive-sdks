@@ -298,6 +298,21 @@ describe("validateEmailAuth", () => {
     });
   });
 
+  describe("fallback handling", () => {
+    it("returns the fallback unknown verdict for unexpected DMARC values", () => {
+      const result = validateEmailAuth({
+        ...createBaseAuth(),
+        dmarc: "mystery" as EmailAuth["dmarc"],
+      });
+
+      expect(result).toEqual({
+        verdict: "unknown",
+        confidence: "low",
+        reasons: ["Unable to determine email authenticity"],
+      });
+    });
+  });
+
   // =============================================================================
   // SUSPICIOUS (HIGH CONFIDENCE) - DMARC fail with reject/quarantine
   // =============================================================================

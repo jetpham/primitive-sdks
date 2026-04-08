@@ -205,6 +205,58 @@ describe("handleWebhook", () => {
 
       expect(event.id).toBe("evt_abc123");
     });
+
+    it("uses the first signature when a header value is an array", () => {
+      const body = JSON.stringify(validPayload);
+      const { header } = signWebhookPayload(body, secret);
+
+      const event = handleWebhook({
+        body,
+        headers: { "primitive-signature": [header, "ignored"] },
+        secret,
+      });
+
+      expect(event.id).toBe("evt_abc123");
+    });
+
+    it("treats an empty signature array as a missing header", () => {
+      const body = JSON.stringify(validPayload);
+
+      expect(() =>
+        handleWebhook({
+          body,
+          headers: { "primitive-signature": [] },
+          secret,
+        }),
+      ).toThrow(WebhookVerificationError);
+    });
+
+    it("treats a missing Fetch Headers signature as empty", () => {
+      const body = JSON.stringify(validPayload);
+
+      expect(() =>
+        handleWebhook({
+          body,
+          headers: new Headers(),
+          secret,
+        }),
+      ).toThrow(WebhookVerificationError);
+    });
+
+    it("treats an explicitly undefined signature value as empty", () => {
+      const body = JSON.stringify(validPayload);
+
+      expect(() =>
+        handleWebhook({
+          body,
+          headers: { "primitive-signature": undefined } as Record<
+            string,
+            string | string[] | undefined
+          >,
+          secret,
+        }),
+      ).toThrow(WebhookVerificationError);
+    });
   });
 
   describe("verification errors", () => {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   safeValidateEmailReceivedEvent,
   validateEmailReceivedEvent,
@@ -81,6 +81,11 @@ const validPayload = {
 };
 
 describe("validation", () => {
+  afterEach(() => {
+    vi.resetModules();
+    vi.doUnmock("../../src/generated/email-received-event.validator.generated.js");
+  });
+
   it("returns typed event for valid payload", () => {
     const event = validateEmailReceivedEvent(validPayload);
     expect(event.id).toBe("evt_abc123");
@@ -102,6 +107,150 @@ describe("validation", () => {
     if (!result.success) {
       expect(result.error.code).toBe("SCHEMA_VALIDATION_FAILED");
       expect(result.error.validationErrors.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("formats const validation failures with field-specific guidance", () => {
+    try {
+      validateEmailReceivedEvent({ ...validPayload, event: "email.opened" });
+      throw new Error("expected validation to fail");
+    } catch (error) {
+      expect(error).toBeInstanceOf(WebhookValidationError);
+      const validationError = error as WebhookValidationError;
+      expect(validationError.field).toBe("event");
+      expect(validationError.message).toContain("Invalid value for event");
+    }
+  });
+
+  it("falls back to a payload-level error when the validator reports no issues", async () => {
+    const mockedValidator = Object.assign(() => false, { errors: undefined });
+    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
+      default: mockedValidator,
+    }));
+
+    const { validateEmailReceivedEvent: validateWithMock } = await import(
+      "../../src/validation.js"
+    );
+
+    try {
+      validateWithMock(validPayload);
+      throw new Error("expected validation to fail");
+    } catch (error) {
+      expect(error).toMatchObject({
+        code: "SCHEMA_VALIDATION_FAILED",
+        field: "payload",
+        validationErrors: [],
+        message: "Webhook payload failed schema validation",
+      });
+      expect((error as WebhookValidationError).message).toBe(
+        "Webhook payload failed schema validation",
+      );
+    }
+  });
+
+  it("handles null validator errors in the safe validation path", async () => {
+    const mockedValidator = Object.assign(() => false, { errors: null });
+    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
+      default: mockedValidator,
+    }));
+
+    const { safeValidateEmailReceivedEvent: safeValidateWithMock } = await import(
+      "../../src/validation.js"
+    );
+
+    const result = safeValidateWithMock(validPayload);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.validationErrors).toEqual([]);
+      expect(result.error.field).toBe("payload");
+    }
+  });
+
+  it("formats generic validation failures with field-specific guidance", () => {
+    try {
+      validateEmailReceivedEvent({
+        ...validPayload,
+        email: {
+          ...validPayload.email,
+          auth: {
+            ...validPayload.email.auth,
+            dkimSignatures: [{ ...validPayload.email.auth.dkimSignatures[0], algo: 123 }],
+          },
+        },
+      });
+      throw new Error("expected validation to fail");
+    } catch (error) {
+      expect(error).toBeInstanceOf(WebhookValidationError);
+      const validationError = error as WebhookValidationError;
+      expect(validationError.field).toContain("email.auth.dkimSignatures");
+      expect(validationError.message).toContain("Invalid type for");
+    }
+  });
+
+  it("formats required validation failures without a reported property name", async () => {
+    const mockedValidator = Object.assign(() => false, {
+      errors: [
+        {
+          instancePath: "/email",
+          keyword: "required",
+          params: {},
+          schemaPath: "",
+        },
+      ],
+    });
+    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
+      default: mockedValidator,
+    }));
+
+    const { validateEmailReceivedEvent: validateWithMock } = await import(
+      "../../src/validation.js"
+    );
+
+    expect(() => validateWithMock(validPayload)).toThrowError(/Missing required field: unknown/);
+  });
+
+  it("uses fallback messages when validator errors omit details", async () => {
+    const mockedValidator = Object.assign(() => false, {
+      errors: [
+        {
+          instancePath: "/event",
+          keyword: "const",
+          params: {},
+          schemaPath: "",
+        },
+        {
+          instancePath: "/event",
+          keyword: "type",
+          params: {},
+          schemaPath: "",
+        },
+        {
+          instancePath: "/event",
+          keyword: "pattern",
+          params: {},
+          schemaPath: "",
+        },
+      ],
+    });
+    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
+      default: mockedValidator,
+    }));
+
+    const { validateEmailReceivedEvent: validateWithMock } = await import(
+      "../../src/validation.js"
+    );
+
+    for (const expected of [
+      /must match the expected constant/,
+      /wrong type/,
+      /Validation failed for event: pattern/,
+    ]) {
+      try {
+        validateWithMock(validPayload);
+      } catch (error) {
+        expect((error as WebhookValidationError).message).toMatch(expected);
+      }
+      mockedValidator.errors?.shift();
     }
   });
 

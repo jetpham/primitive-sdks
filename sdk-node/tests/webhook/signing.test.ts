@@ -255,6 +255,18 @@ describe("verifyWebhookSignature", () => {
     expect(result).toBe(true);
   });
 
+  it("ignores malformed signature parts when a valid signature is present", () => {
+    const { header } = signWebhookPayload(rawBody, secret, 123);
+    const result = verifyWebhookSignature({
+      rawBody,
+      signatureHeader: `=oops, foo=, ${header}, v1=`,
+      secret,
+      nowSeconds: 123,
+    });
+
+    expect(result).toBe(true);
+  });
+
   it("throws INVALID_SIGNATURE_HEADER for malformed header", () => {
     expect(() =>
       verifyWebhookSignature({ rawBody, signatureHeader: "", secret }),
