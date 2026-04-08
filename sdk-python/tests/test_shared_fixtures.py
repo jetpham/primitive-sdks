@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
 from primitive_sdk import (
+    EmailReceivedEvent,
     PrimitiveWebhookError,
     RawEmailDecodeError,
+    UnknownEvent,
     WebhookValidationError,
     WebhookVerificationError,
     decode_raw_email,
@@ -128,13 +130,15 @@ def test_shared_parse_webhook_event_cases() -> None:
 
         event = parse_webhook_event(payload)
         if expected["kind"] == "email.received":
-            assert event.event == expected.get("event", expected["kind"])
-            assert event.id == expected["id"]
+            known_event = event
+            assert isinstance(known_event, EmailReceivedEvent)
+            assert known_event.event == expected.get("event", expected["kind"])
+            assert known_event.id == expected["id"]
         else:
-            unknown_event = event
+            unknown_event = cast(UnknownEvent, event)
             assert unknown_event["event"] == expected.get("event", expected["kind"])
-            assert unknown_event["id"] == expected["id"]
-            assert unknown_event["version"] == expected["version"]
+            assert unknown_event.get("id") == expected["id"]
+            assert unknown_event.get("version") == expected["version"]
 
 
 def test_shared_handle_webhook_cases() -> None:

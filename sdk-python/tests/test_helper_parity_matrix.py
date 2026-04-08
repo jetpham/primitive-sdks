@@ -8,6 +8,7 @@ import pytest
 from primitive_sdk import (
     PrimitiveWebhookError,
     RawEmailDecodeError,
+    UnknownEvent,
     confirmed_headers,
     decode_raw_email,
     get_download_time_remaining,
@@ -43,12 +44,12 @@ def test_is_email_received_event_matrix(event: object, expected: bool) -> None:
     ],
 )
 def test_parse_webhook_event_unknown_event_matrix(payload: dict[str, Any]) -> None:
-    result = cast(dict[str, Any], parse_webhook_event(payload))
+    result = cast(UnknownEvent, parse_webhook_event(payload))
     assert result["event"] == payload["event"]
     if "id" in payload:
-        assert result["id"] == payload["id"]
+        assert result.get("id") == payload["id"]
     if "version" in payload:
-        assert result["version"] == payload["version"]
+        assert result.get("version") == payload["version"]
 
 
 @pytest.mark.parametrize(

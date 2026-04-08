@@ -24,7 +24,7 @@ node-build:
 	pnpm --dir sdk-node build
 
 node-smoke:
-	pack_dir=$$(mktemp -d) && smoke_dir=$$(mktemp -d) && tarball=$$(cd sdk-node && npm pack --pack-destination "$$pack_dir") && npm init -y --prefix "$$smoke_dir" && npm install --prefix "$$smoke_dir" "$$pack_dir/$$tarball" && cd "$$smoke_dir" && node --input-type=module -e "const pkg = await import('@primitivedotdev/sdk-node'); if (typeof pkg.handleWebhook !== 'function') throw new Error('missing handleWebhook export')"
+	pack_dir=$$(mktemp -d) && smoke_dir=$$(mktemp -d) && tarball=$$(cd sdk-node && npm pack --pack-destination "$$pack_dir") && cd "$$smoke_dir" && npm init -y && npm install "$$pack_dir/$$tarball" && node --input-type=module -e "const pkg = await import('@primitivedotdev/sdk-node'); if (typeof pkg.handleWebhook !== 'function') throw new Error('missing handleWebhook export')"
 
 python-sync:
 	cd sdk-python && uv sync --dev
@@ -39,8 +39,8 @@ python-test:
 	cd sdk-python && uv run pytest tests -k "not shared_fixtures"
 
 python-check: python-check-generated
-	cd sdk-python && uv run ruff check .
-	cd sdk-python && uv run basedpyright
+	if command -v ruff >/dev/null 2>&1; then cd sdk-python && ruff check .; else cd sdk-python && uv run ruff check .; fi
+	if command -v basedpyright >/dev/null 2>&1; then cd sdk-python && basedpyright; else cd sdk-python && uv run basedpyright; fi
 	$(MAKE) python-test
 
 python-build:

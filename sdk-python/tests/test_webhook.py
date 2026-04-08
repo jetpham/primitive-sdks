@@ -10,6 +10,7 @@ import pytest
 from primitive_sdk import (
     PrimitiveWebhookError,
     RawEmailDecodeError,
+    UnknownEvent,
     WebhookPayloadError,
     WebhookValidationError,
     confirmed_headers,
@@ -106,7 +107,7 @@ def test_parse_webhook_event_handles_known_and_unknown_events() -> None:
         )
     )
     unknown = cast(
-        dict[str, Any],
+        UnknownEvent,
         parse_webhook_event({"event": "email.bounced", "id": "y"}),
     )
     assert unknown["event"] == "email.bounced"

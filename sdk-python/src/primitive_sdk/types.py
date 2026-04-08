@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, NotRequired, TypeAlias, TypedDict
+from typing import NotRequired, TypeAlias, TypedDict
 
 from primitive_sdk.models_generated import (
     AuthConfidence as GeneratedAuthConfidence,
@@ -175,5 +175,5 @@ class UnknownEvent(TypedDict):
     version: NotRequired[str]
 
 
-KnownWebhookEvent: TypeAlias = EmailReceivedEvent | dict[str, Any]
+KnownWebhookEvent: TypeAlias = EmailReceivedEvent
 WebhookEvent: TypeAlias = KnownWebhookEvent | UnknownEvent

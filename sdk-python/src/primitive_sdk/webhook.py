@@ -7,7 +7,7 @@ import json
 import re
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
-from typing import Any, TypedDict
+from typing import Any, TypedDict, TypeGuard, cast
 
 from primitive_sdk.errors import (
     RawEmailDecodeError,
@@ -19,6 +19,7 @@ from primitive_sdk.types import (
     AuthVerdict,
     EmailAuth,
     EmailReceivedEvent,
+    UnknownEvent,
     ValidateEmailAuthResult,
     WebhookEvent,
 )
@@ -242,10 +243,10 @@ def parse_webhook_event(input: Any = _UNDEFINED) -> WebhookEvent:
         )
     if input["event"] == "email.received":
         return validate_email_received_event(input)
-    return input  # type: ignore[return-value]
+    return cast(UnknownEvent, input)
 
 
-def is_email_received_event(event: object) -> bool:
+def is_email_received_event(event: object) -> TypeGuard[EmailReceivedEvent]:
     try:
         return _field(event, "event") == "email.received"
     except (AttributeError, KeyError, TypeError):
