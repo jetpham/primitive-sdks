@@ -55,6 +55,7 @@ Use the root `Makefile` as the main task interface:
 make check
 make shared-check
 make build
+make release-check
 ```
 
 The `Makefile` wraps each SDK's native commands. You can still run them directly from each SDK directory when needed:

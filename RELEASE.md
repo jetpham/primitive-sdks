@@ -14,7 +14,7 @@ Use this process when cutting a release for one or more SDKs.
 1. Confirm the working tree is clean.
 2. Update the relevant package version metadata.
 3. If the webhook contract changed, regenerate artifacts for each affected SDK.
-4. Run `make check` from the repository root.
+4. Run `make release-check` from the repository root.
 5. Review the SDK README and changelog notes for any public API changes.
 
 ## Node Release

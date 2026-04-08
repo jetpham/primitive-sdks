@@ -1,7 +1,7 @@
 .PHONY: node-install node-generate node-check-generated node-test node-check node-build node-smoke node-coverage
 .PHONY: python-sync python-generate python-check-generated python-test python-check python-build python-smoke python-coverage
 .PHONY: go-generate go-check-generated go-check go-build go-coverage
-.PHONY: shared-check check build
+.PHONY: shared-check check build release-check
 
 node-install:
 	pnpm install --frozen-lockfile --dir sdk-node
@@ -80,3 +80,5 @@ shared-check:
 check: node-check python-check go-check shared-check
 
 build: node-build python-build
+
+release-check: node-check node-build node-smoke python-check python-build python-smoke go-check go-build shared-check
