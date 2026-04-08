@@ -35,13 +35,21 @@ primitive-sdks/
 
 ## Development
 
-If you use Nix:
+If you use Nix, install the shared toolchain with:
 
 ```bash
 nix develop
 ```
 
-Run the main checks from each SDK directory:
+Use the root `Makefile` as the main task interface:
+
+```bash
+make check
+make shared-check
+make build
+```
+
+The `Makefile` wraps each SDK's native commands. You can still run them directly from each SDK directory when needed:
 
 ```bash
 cd sdk-node && pnpm install && pnpm typecheck && pnpm test
