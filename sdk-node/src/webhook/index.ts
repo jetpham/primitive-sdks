@@ -57,6 +57,8 @@ export {
 export {
   PRIMITIVE_CONFIRMED_HEADER,
   PRIMITIVE_SIGNATURE_HEADER,
+  type SignResult,
+  signWebhookPayload,
   type VerifyOptions,
   verifyWebhookSignature,
 } from "./signing.js";

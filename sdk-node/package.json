@@ -9,10 +9,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    },
-    "./webhook": {
-      "types": "./dist/webhook/index.d.ts",
-      "default": "./dist/webhook/index.js"
     }
   },
   "sideEffects": false,
@@ -33,13 +29,7 @@
     "lint:fix": "biome check --write src/",
     "prepublishOnly": "pnpm build"
   },
-  "keywords": [
-    "primitive",
-    "email",
-    "webhook",
-    "signature",
-    "hmac"
-  ],
+  "keywords": ["primitive", "email", "webhook", "signature", "hmac"],
   "author": "Primitive <support@primitive.dev>",
   "license": "MIT",
   "repository": {
