@@ -64,7 +64,7 @@ app.post("/webhooks/email", express.raw({ type: "application/json" }), (req, res
 - `safeValidateEmailReceivedEvent(input)`
   - returns `{ success, data }` or `{ success, error }`
 - `verifyWebhookSignature(options)`
-  - verifies `x-primitive-signature`
+  - verifies `Primitive-Signature`
 - `validateEmailAuth(auth)`
   - computes a verdict from SPF, DKIM, and DMARC results
 
