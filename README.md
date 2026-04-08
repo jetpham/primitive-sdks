@@ -69,3 +69,4 @@ cd sdk-go && go test ./... && go test -run TestSharedCompatibilityFixtures ./...
 ## Documentation
 
 - `docs/schema-generation.md` documents the canonical schema and generated artifacts in each SDK
+- `docs/repo-model.md` documents the monorepo task model and package boundaries
