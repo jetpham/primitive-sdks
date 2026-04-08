@@ -65,3 +65,7 @@ cd sdk-go && go test ./... && go test -run TestSharedCompatibilityFixtures ./...
 - Python SDK checks
 - Go SDK checks
 - shared fixture compatibility checks across all three SDKs
+
+## Documentation
+
+- `docs/schema-generation.md` documents the canonical schema and generated artifacts in each SDK
