@@ -64,6 +64,19 @@ include = [
 testpaths = ["tests"]
 pythonpath = ["src"]
 
+[tool.coverage.run]
+source = ["primitive_sdk"]
+omit = [
+  "src/primitive_sdk/models_generated.py",
+  "src/primitive_sdk/schemas/*",
+]
+
+[tool.coverage.report]
+omit = [
+  "src/primitive_sdk/models_generated.py",
+  "src/primitive_sdk/schemas/*",
+]
+
 [tool.ruff]
 target-version = "py311"
 line-length = 88

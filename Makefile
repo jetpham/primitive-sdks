@@ -70,7 +70,7 @@ go-build:
 	cd sdk-go && go build ./...
 
 go-coverage:
-	cd sdk-go && coverage_file=$$(mktemp) && go test ./... -coverprofile="$$coverage_file" && go tool cover -func="$$coverage_file" && rm -f "$$coverage_file"
+	cd sdk-go && raw_coverage_file=$$(mktemp) && filtered_coverage_file=$$(mktemp) && go test ./... -coverprofile="$$raw_coverage_file" && { IFS= read -r header && printf '%s\n' "$$header" > "$$filtered_coverage_file" && while IFS= read -r line; do case "$$line" in *"/schema_generated.go:"*|*"/doc.go:"*) ;; *) printf '%s\n' "$$line" >> "$$filtered_coverage_file" ;; esac; done; } < "$$raw_coverage_file" && go tool cover -func="$$filtered_coverage_file" && rm -f "$$raw_coverage_file" "$$filtered_coverage_file"
 
 shared-check:
 	cd sdk-node && pnpm exec vitest run tests/webhook/shared-fixtures.test.ts
