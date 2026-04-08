@@ -13,7 +13,7 @@ node-check-generated:
 	cd sdk-node && pnpm generate && git diff --exit-code -- src/schema.generated.ts src/types.generated.ts src/validator.generated.ts
 
 node-test:
-	pnpm --dir sdk-node test -- tests/webhook/auth.test.ts tests/webhook/encoding.test.ts tests/webhook/index.test.ts tests/webhook/signing.test.ts tests/webhook/validation.test.ts
+	pnpm --dir sdk-node test
 
 node-check: node-check-generated
 	if command -v biome >/dev/null 2>&1; then cd sdk-node && biome check src/; else pnpm --dir sdk-node lint; fi
