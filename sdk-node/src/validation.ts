@@ -45,26 +45,26 @@ function formatValidationIssue(error: ErrorObject): {
       return {
         field: prefix === "payload" ? missing : `${prefix}.${missing}`,
         message: `Missing required field: ${missing}`,
-        suggestion: `Add the required field \"${missing}\" to the webhook payload.`,
+        suggestion: `Add the required field "${missing}" to the webhook payload.`,
       };
     }
     case "const":
       return {
         field,
         message: `Invalid value for ${field}: ${error.message ?? "must match the expected constant"}`,
-        suggestion: `Check the value of \"${field}\" in the webhook payload.`,
+        suggestion: `Check the value of "${field}" in the webhook payload.`,
       };
     case "type":
       return {
         field,
         message: `Invalid type for ${field}: ${error.message ?? "wrong type"}`,
-        suggestion: `Check the value of \"${field}\" in the webhook payload.`,
+        suggestion: `Check the value of "${field}" in the webhook payload.`,
       };
     default:
       return {
         field,
         message: `Validation failed for ${field}: ${error.message ?? error.keyword}`,
-        suggestion: `Check the value of \"${field}\" in the webhook payload.`,
+        suggestion: `Check the value of "${field}" in the webhook payload.`,
       };
   }
 }

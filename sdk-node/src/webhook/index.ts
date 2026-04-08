@@ -30,38 +30,36 @@
  * @packageDocumentation
  */
 
-// Errors
-export {
-  // Error classes
-  PrimitiveWebhookError,
-  WebhookVerificationError,
-  WebhookPayloadError,
-  WebhookValidationError,
-  RawEmailDecodeError,
-  // Error definitions (for docs, dashboards, i18n)
-  VERIFICATION_ERRORS,
-  PAYLOAD_ERRORS,
-  RAW_EMAIL_ERRORS,
-  // Error code types
-  type WebhookErrorCode,
-  type WebhookVerificationErrorCode,
-  type WebhookPayloadErrorCode,
-  type WebhookValidationErrorCode,
-  type RawEmailDecodeErrorCode,
-} from "./errors.js";
-
-// Signing & Verification
-export {
-  PRIMITIVE_SIGNATURE_HEADER,
-  PRIMITIVE_CONFIRMED_HEADER,
-  verifyWebhookSignature,
-  type VerifyOptions,
-} from "./signing.js";
-
 export {
   safeValidateEmailReceivedEvent,
   validateEmailReceivedEvent,
 } from "../validation.js";
+// Errors
+export {
+  PAYLOAD_ERRORS,
+  // Error classes
+  PrimitiveWebhookError,
+  RAW_EMAIL_ERRORS,
+  RawEmailDecodeError,
+  type RawEmailDecodeErrorCode,
+  // Error definitions (for docs, dashboards, i18n)
+  VERIFICATION_ERRORS,
+  // Error code types
+  type WebhookErrorCode,
+  WebhookPayloadError,
+  type WebhookPayloadErrorCode,
+  WebhookValidationError,
+  type WebhookValidationErrorCode,
+  WebhookVerificationError,
+  type WebhookVerificationErrorCode,
+} from "./errors.js";
+// Signing & Verification
+export {
+  PRIMITIVE_CONFIRMED_HEADER,
+  PRIMITIVE_SIGNATURE_HEADER,
+  type VerifyOptions,
+  verifyWebhookSignature,
+} from "./signing.js";
 
 import { validateEmailReceivedEvent } from "../validation.js";
 import {
@@ -69,64 +67,60 @@ import {
   verifyWebhookSignature,
 } from "./signing.js";
 
-// Version
-export { WEBHOOK_VERSION } from "./version.js";
-
 // JSON Schema
 export { emailReceivedEventJsonSchema } from "../schema.generated.js";
-
 // Types
 export type {
+  DkimSignature,
   EmailAddress,
+  // Analysis types
+  EmailAnalysis,
+  // Auth types
+  EmailAuth,
   EmailReceivedEvent,
-  WebhookEvent,
+  // Forward analysis types
+  ForwardAnalysis,
+  ForwardOriginalSender,
+  ForwardResult,
+  ForwardResultAttachmentAnalyzed,
+  ForwardResultAttachmentSkipped,
+  ForwardResultInline,
+  ForwardVerification,
   KnownWebhookEvent,
-  UnknownEvent,
-  WebhookAttachment,
   ParsedData,
   ParsedDataComplete,
   ParsedDataFailed,
   ParsedError,
   RawContent,
-  RawContentInline,
   RawContentDownloadOnly,
-  // Auth types
-  EmailAuth,
-  DkimSignature,
+  RawContentInline,
+  UnknownEvent,
   ValidateEmailAuthResult,
-  // Analysis types
-  EmailAnalysis,
-  // Forward analysis types
-  ForwardAnalysis,
-  ForwardResult,
-  ForwardResultInline,
-  ForwardResultAttachmentAnalyzed,
-  ForwardResultAttachmentSkipped,
-  ForwardVerification,
-  ForwardOriginalSender,
+  WebhookAttachment,
+  WebhookEvent,
 } from "../types.js";
-
 // Type-safe constants and their types (TypeScript merges const + type with same name)
 // Use these instead of magic strings for autocomplete and refactor safety
 export {
+  AuthConfidence,
+  // Auth validation
+  AuthVerdict,
+  DkimResult,
+  DmarcPolicy,
+  DmarcResult,
   // Event types
   EventType,
+  // Forward verification
+  ForwardVerdict,
   // Parsed status
   ParsedStatus,
   // Auth results
   SpfResult,
-  DmarcResult,
-  DmarcPolicy,
-  DkimResult,
-  // Auth validation
-  AuthVerdict,
-  AuthConfidence,
-  // Forward verification
-  ForwardVerdict,
 } from "../types.js";
-
 // Auth Validation
 export { validateEmailAuth } from "./auth.js";
+// Version
+export { WEBHOOK_VERSION } from "./version.js";
 
 import { createHash } from "node:crypto";
 import type {
@@ -134,11 +128,7 @@ import type {
   UnknownEvent,
   WebhookEvent,
 } from "../types.js";
-import {
-  PrimitiveWebhookError,
-  RawEmailDecodeError,
-  WebhookPayloadError,
-} from "./errors.js";
+import { RawEmailDecodeError, WebhookPayloadError } from "./errors.js";
 import { parseJsonBody } from "./parsing.js";
 
 /**

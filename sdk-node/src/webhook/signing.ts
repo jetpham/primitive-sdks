@@ -15,10 +15,7 @@
 
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { bufferToString } from "./encoding.js";
-import {
-  WebhookVerificationError,
-  type WebhookVerificationErrorCode,
-} from "./errors.js";
+import { WebhookVerificationError } from "./errors.js";
 
 // -----------------------------------------------------------------------------
 // Signature Cache

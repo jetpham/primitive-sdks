@@ -16,7 +16,7 @@ node-test:
 	pnpm --dir sdk-node test -- tests/webhook/auth.test.ts tests/webhook/encoding.test.ts tests/webhook/index.test.ts tests/webhook/signing.test.ts tests/webhook/validation.test.ts
 
 node-check: node-check-generated
-	pnpm --dir sdk-node lint
+	if command -v biome >/dev/null 2>&1; then cd sdk-node && biome check src/; else pnpm --dir sdk-node lint; fi
 	pnpm --dir sdk-node typecheck
 	$(MAKE) node-test
 
