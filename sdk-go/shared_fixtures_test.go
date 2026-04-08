@@ -25,6 +25,38 @@ func loadFixtureCases[T any](t *testing.T, parts ...string) T {
 	return value
 }
 
+func loadFixtureText(t *testing.T, parts ...string) string {
+	t.Helper()
+	_, filename, _, _ := runtime.Caller(0)
+	base := filepath.Join(filepath.Dir(filename), "..", "test-fixtures")
+	all := append([]string{base}, parts...)
+	data, err := os.ReadFile(filepath.Join(all...))
+	if err != nil {
+		t.Fatalf("read fixture file: %v", err)
+	}
+	return string(data)
+}
+
+func webhookErrorCode(err error) (string, bool) {
+	var verificationErr *WebhookVerificationError
+	if errors.As(err, &verificationErr) {
+		return verificationErr.Code(), true
+	}
+	var payloadErr *WebhookPayloadError
+	if errors.As(err, &payloadErr) {
+		return payloadErr.Code(), true
+	}
+	var validationErr *WebhookValidationError
+	if errors.As(err, &validationErr) {
+		return validationErr.Code(), true
+	}
+	var decodeErr *RawEmailDecodeError
+	if errors.As(err, &decodeErr) {
+		return decodeErr.Code(), true
+	}
+	return "", false
+}
+
 func TestSharedCompatibilityFixtures(t *testing.T) {
 	t.Run("webhook validation", func(t *testing.T) {
 		fixtures := loadFixtureCases[struct {
@@ -74,6 +106,7 @@ func TestSharedCompatibilityFixtures(t *testing.T) {
 				Timestamp         int64  `json:"timestamp"`
 				VerifySecret      string `json:"verify_secret"`
 				NowSeconds        int64  `json:"now_seconds"`
+				SignatureHeader   string `json:"signature_header"`
 				ExpectedV1        string `json:"expected_v1"`
 				ExpectedValid     bool   `json:"expected_valid"`
 				ExpectedErrorCode string `json:"expected_error_code"`
@@ -97,10 +130,14 @@ func TestSharedCompatibilityFixtures(t *testing.T) {
 			if nowSeconds == 0 {
 				nowSeconds = testCase.Timestamp
 			}
+			signatureHeader := testCase.SignatureHeader
+			if signatureHeader == "" {
+				signatureHeader = signed.Header
+			}
 
 			_, err = VerifyWebhookSignature(VerifyOptions{
 				RawBody:         testCase.RawBody,
-				SignatureHeader: signed.Header,
+				SignatureHeader: signatureHeader,
 				Secret:          verifySecret,
 				NowSeconds:      &nowSeconds,
 			})
@@ -152,10 +189,11 @@ func TestSharedCompatibilityFixtures(t *testing.T) {
 				Event             map[string]any `json:"event"`
 				DownloadBytesUTF8 string         `json:"download_bytes_utf8"`
 				Expected          struct {
-					Included        bool   `json:"included"`
-					DecodedUTF8     string `json:"decoded_utf8"`
-					DecodeErrorCode string `json:"decode_error_code"`
-					VerifyDownload  bool   `json:"verify_download"`
+					Included                bool   `json:"included"`
+					DecodedUTF8             string `json:"decoded_utf8"`
+					DecodeErrorCode         string `json:"decode_error_code"`
+					VerifyDownload          bool   `json:"verify_download"`
+					VerifyDownloadErrorCode string `json:"verify_download_error_code"`
 				} `json:"expected"`
 			} `json:"cases"`
 		}](t, "raw", "cases.json")
@@ -198,6 +236,164 @@ func TestSharedCompatibilityFixtures(t *testing.T) {
 				if string(verified) != testCase.DownloadBytesUTF8 {
 					t.Fatalf("%s: unexpected verified content %q", testCase.Name, string(verified))
 				}
+			}
+
+			if testCase.Expected.VerifyDownloadErrorCode != "" {
+				_, err := VerifyRawEmailDownload([]byte(testCase.DownloadBytesUTF8), testCase.Event)
+				var decodeErr *RawEmailDecodeError
+				if !errors.As(err, &decodeErr) {
+					t.Fatalf("%s: expected RawEmailDecodeError, got %v", testCase.Name, err)
+				}
+				if decodeErr.Code() != testCase.Expected.VerifyDownloadErrorCode {
+					t.Fatalf("%s: unexpected error code %q", testCase.Name, decodeErr.Code())
+				}
+			}
+		}
+	})
+
+	t.Run("parse webhook event", func(t *testing.T) {
+		fixtures := loadFixtureCases[struct {
+			Cases []struct {
+				Name         string   `json:"name"`
+				Input        any      `json:"input"`
+				InputFixture []string `json:"input_fixture"`
+				Expected     struct {
+					Kind      string `json:"kind"`
+					Event     string `json:"event"`
+					ID        string `json:"id"`
+					Version   string `json:"version"`
+					ErrorCode string `json:"error_code"`
+				} `json:"expected"`
+			} `json:"cases"`
+		}](t, "parse-webhook-event", "cases.json")
+
+		for _, testCase := range fixtures.Cases {
+			input := testCase.Input
+			if len(testCase.InputFixture) > 0 {
+				input = loadFixtureCases[any](t, testCase.InputFixture...)
+			}
+
+			if testCase.Expected.Kind == "error" {
+				_, err := ParseWebhookEvent(input)
+				code, ok := webhookErrorCode(err)
+				if !ok {
+					t.Fatalf("%s: expected PrimitiveWebhookError, got %v", testCase.Name, err)
+				}
+				if code != testCase.Expected.ErrorCode {
+					t.Fatalf("%s: unexpected error code %q", testCase.Name, code)
+				}
+				continue
+			}
+
+			event, err := ParseWebhookEvent(input)
+			if err != nil {
+				t.Fatalf("%s: ParseWebhookEvent returned error: %v", testCase.Name, err)
+			}
+			expectedEvent := testCase.Expected.Event
+			if expectedEvent == "" {
+				expectedEvent = testCase.Expected.Kind
+			}
+			if event.GetEvent() != expectedEvent {
+				t.Fatalf("%s: unexpected event type %q", testCase.Name, event.GetEvent())
+			}
+
+			if testCase.Expected.Kind == string(EventTypeEmailReceived) {
+				typed, ok := event.(EmailReceivedEvent)
+				if !ok {
+					t.Fatalf("%s: expected EmailReceivedEvent, got %T", testCase.Name, event)
+				}
+				if typed.ID != testCase.Expected.ID {
+					t.Fatalf("%s: unexpected event ID %q", testCase.Name, typed.ID)
+				}
+				continue
+			}
+
+			unknown, ok := event.(UnknownEvent)
+			if !ok {
+				t.Fatalf("%s: expected UnknownEvent, got %T", testCase.Name, event)
+			}
+			if unknown.ID == nil || *unknown.ID != testCase.Expected.ID {
+				t.Fatalf("%s: unexpected unknown event ID %#v", testCase.Name, unknown.ID)
+			}
+			if unknown.Version == nil || *unknown.Version != testCase.Expected.Version {
+				t.Fatalf("%s: unexpected unknown event version %#v", testCase.Name, unknown.Version)
+			}
+		}
+	})
+
+	t.Run("handle webhook", func(t *testing.T) {
+		fixtures := loadFixtureCases[struct {
+			Cases []struct {
+				Name             string            `json:"name"`
+				Body             string            `json:"body"`
+				BodyFixture      []string          `json:"body_fixture"`
+				Headers          map[string]string `json:"headers"`
+				Secret           string            `json:"secret"`
+				SignSecret       string            `json:"sign_secret"`
+				Timestamp        *int64            `json:"timestamp"`
+				ToleranceSeconds int64             `json:"tolerance_seconds"`
+				Expected         struct {
+					Valid     bool   `json:"valid"`
+					ID        string `json:"id"`
+					ErrorCode string `json:"error_code"`
+				} `json:"expected"`
+			} `json:"cases"`
+		}](t, "handle-webhook", "cases.json")
+
+		for _, testCase := range fixtures.Cases {
+			body := testCase.Body
+			if len(testCase.BodyFixture) > 0 {
+				body = loadFixtureText(t, testCase.BodyFixture...)
+			}
+			signSecret := testCase.SignSecret
+			if signSecret == "" {
+				signSecret = testCase.Secret
+			}
+			signed, err := SignWebhookPayload(body, signSecret)
+			if testCase.Timestamp != nil {
+				signed, err = SignWebhookPayload(body, signSecret, *testCase.Timestamp)
+			}
+			if err != nil {
+				t.Fatalf("%s: SignWebhookPayload returned error: %v", testCase.Name, err)
+			}
+
+			headers := map[string]string{}
+			for key, value := range testCase.Headers {
+				if value == "{signed}" {
+					headers[key] = signed.Header
+				} else {
+					headers[key] = value
+				}
+			}
+
+			if testCase.Expected.Valid {
+				event, err := HandleWebhook(HandleWebhookOptions{
+					Body:             body,
+					Headers:          headers,
+					Secret:           testCase.Secret,
+					ToleranceSeconds: testCase.ToleranceSeconds,
+				})
+				if err != nil {
+					t.Fatalf("%s: HandleWebhook returned error: %v", testCase.Name, err)
+				}
+				if event.ID != testCase.Expected.ID {
+					t.Fatalf("%s: unexpected event ID %q", testCase.Name, event.ID)
+				}
+				continue
+			}
+
+			_, err = HandleWebhook(HandleWebhookOptions{
+				Body:             body,
+				Headers:          headers,
+				Secret:           testCase.Secret,
+				ToleranceSeconds: testCase.ToleranceSeconds,
+			})
+			code, ok := webhookErrorCode(err)
+			if !ok {
+				t.Fatalf("%s: expected PrimitiveWebhookError, got %v", testCase.Name, err)
+			}
+			if code != testCase.Expected.ErrorCode {
+				t.Fatalf("%s: unexpected error code %q", testCase.Name, code)
 			}
 		}
 	})

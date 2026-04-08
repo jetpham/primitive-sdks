@@ -124,6 +124,69 @@
         "verdict": "legit",
         "confidence": "high"
       }
+    },
+    {
+      "name": "quarantine_failure",
+      "input": {
+        "spf": "pass",
+        "dmarc": "fail",
+        "dmarcPolicy": "quarantine",
+        "dmarcFromDomain": "example.com",
+        "dmarcSpfAligned": false,
+        "dmarcDkimAligned": false,
+        "dmarcSpfStrict": false,
+        "dmarcDkimStrict": false,
+        "dkimSignatures": []
+      },
+      "expected": {
+        "verdict": "suspicious",
+        "confidence": "high"
+      }
+    },
+    {
+      "name": "weak_aligned_dkim",
+      "input": {
+        "spf": "pass",
+        "dmarc": "pass",
+        "dmarcPolicy": "reject",
+        "dmarcFromDomain": "example.com",
+        "dmarcSpfAligned": true,
+        "dmarcDkimAligned": true,
+        "dmarcSpfStrict": false,
+        "dmarcDkimStrict": false,
+        "dkimSignatures": [
+          {
+            "domain": "example.com",
+            "selector": "weak",
+            "result": "pass",
+            "aligned": true,
+            "keyBits": 512,
+            "algo": "rsa-sha256"
+          }
+        ]
+      },
+      "expected": {
+        "verdict": "legit",
+        "confidence": "medium"
+      }
+    },
+    {
+      "name": "dmarc_temperror",
+      "input": {
+        "spf": "pass",
+        "dmarc": "temperror",
+        "dmarcPolicy": null,
+        "dmarcFromDomain": "example.com",
+        "dmarcSpfAligned": false,
+        "dmarcDkimAligned": false,
+        "dmarcSpfStrict": null,
+        "dmarcDkimStrict": null,
+        "dkimSignatures": []
+      },
+      "expected": {
+        "verdict": "unknown",
+        "confidence": "low"
+      }
     }
   ]
 }

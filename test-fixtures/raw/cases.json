@@ -69,6 +69,27 @@
         "included": false,
         "verify_download": true
       }
+    },
+    {
+      "name": "hash_mismatch_download",
+      "event": {
+        "email": {
+          "content": {
+            "raw": {
+              "included": false,
+              "reason_code": "size_exceeded",
+              "size_bytes": 11,
+              "max_inline_bytes": 262144,
+              "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            }
+          }
+        }
+      },
+      "download_bytes_utf8": "Hello World",
+      "expected": {
+        "included": false,
+        "verify_download_error_code": "HASH_MISMATCH"
+      }
     }
   ]
 }

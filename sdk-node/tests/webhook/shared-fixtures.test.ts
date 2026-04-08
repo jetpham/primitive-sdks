@@ -3,11 +3,14 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  PrimitiveWebhookError,
   RawEmailDecodeError,
   WebhookValidationError,
   WebhookVerificationError,
   decodeRawEmail,
+  handleWebhook,
   isRawIncluded,
+  parseWebhookEvent,
   safeValidateEmailReceivedEvent,
   validateEmailAuth,
   validateEmailReceivedEvent,
@@ -21,6 +24,10 @@ const FIXTURES_DIR = join(__dirname, "../../../test-fixtures");
 
 function loadJson<T>(...parts: string[]): T {
   return JSON.parse(readFileSync(join(FIXTURES_DIR, ...parts), "utf8")) as T;
+}
+
+function loadText(...parts: string[]): string {
+  return readFileSync(join(FIXTURES_DIR, ...parts), "utf8");
 }
 
 describe("shared compatibility fixtures", () => {
@@ -63,6 +70,7 @@ describe("shared compatibility fixtures", () => {
         timestamp: number;
         verify_secret?: string;
         now_seconds?: number;
+        signature_header?: string;
         expected_v1: string;
         expected_valid: boolean;
         expected_error_code?: string;
@@ -79,12 +87,13 @@ describe("shared compatibility fixtures", () => {
 
       const verifySecret = testCase.verify_secret ?? testCase.secret;
       const nowSeconds = testCase.now_seconds ?? testCase.timestamp;
+      const signatureHeader = testCase.signature_header ?? signed.header;
 
       if (testCase.expected_valid) {
         expect(
           verifyWebhookSignature({
             rawBody: testCase.raw_body,
-            signatureHeader: signed.header,
+            signatureHeader,
             secret: verifySecret,
             nowSeconds,
           }),
@@ -94,7 +103,7 @@ describe("shared compatibility fixtures", () => {
         try {
           verifyWebhookSignature({
             rawBody: testCase.raw_body,
-            signatureHeader: signed.header,
+            signatureHeader,
             secret: verifySecret,
             nowSeconds,
           });
@@ -131,13 +140,14 @@ describe("shared compatibility fixtures", () => {
     const fixtures = loadJson<{
       cases: Array<{
         name: string;
-        event: any;
+        event: unknown;
         download_bytes_utf8?: string;
         expected: {
           included: boolean;
           decoded_utf8?: string;
           decode_error_code?: string;
           verify_download?: boolean;
+          verify_download_error_code?: string;
         };
       }>;
     }>("raw", "cases.json");
@@ -169,6 +179,130 @@ describe("shared compatibility fixtures", () => {
         const downloaded = Buffer.from(testCase.download_bytes_utf8 ?? "", "utf8");
         expect(verifyRawEmailDownload(downloaded, testCase.event), testCase.name).toEqual(
           downloaded,
+        );
+      }
+
+      if (testCase.expected.verify_download_error_code) {
+        try {
+          verifyRawEmailDownload(
+            Buffer.from(testCase.download_bytes_utf8 ?? "", "utf8"),
+            testCase.event,
+          );
+          expect.fail(`Expected download verification failure for ${testCase.name}`);
+        } catch (error) {
+          expect(error, testCase.name).toBeInstanceOf(RawEmailDecodeError);
+          expect((error as RawEmailDecodeError).code, testCase.name).toBe(
+            testCase.expected.verify_download_error_code,
+          );
+        }
+      }
+    }
+  });
+
+  it("parses shared webhook event fixtures", () => {
+    const fixtures = loadJson<{
+      cases: Array<{
+        name: string;
+        input?: unknown;
+        input_fixture?: string[];
+        expected: {
+          kind: "email.received" | "unknown" | "error";
+          event?: string;
+          id?: string;
+          version?: string;
+          error_code?: string;
+        };
+      }>;
+    }>("parse-webhook-event", "cases.json");
+
+    for (const testCase of fixtures.cases) {
+      const input = testCase.input_fixture
+        ? loadJson(...testCase.input_fixture)
+        : testCase.input;
+
+      if (testCase.expected.kind === "error") {
+        try {
+          parseWebhookEvent(input);
+          expect.fail(`Expected parse failure for ${testCase.name}`);
+        } catch (error) {
+          expect(error, testCase.name).toBeInstanceOf(PrimitiveWebhookError);
+          expect((error as PrimitiveWebhookError).code, testCase.name).toBe(
+            testCase.expected.error_code,
+          );
+        }
+        continue;
+      }
+
+      const event = parseWebhookEvent(input);
+      expect(event.event, testCase.name).toBe(testCase.expected.event ?? testCase.expected.kind);
+
+      if (testCase.expected.kind === "email.received") {
+        expect((event as { id: string }).id, testCase.name).toBe(testCase.expected.id);
+      } else {
+        expect((event as { id?: string }).id, testCase.name).toBe(testCase.expected.id);
+        expect((event as { version?: string }).version, testCase.name).toBe(
+          testCase.expected.version,
+        );
+      }
+    }
+  });
+
+  it("handles shared webhook fixtures", () => {
+    const fixtures = loadJson<{
+      cases: Array<{
+        name: string;
+        body?: string;
+        body_fixture?: string[];
+        headers: Record<string, string>;
+        secret: string;
+        sign_secret?: string;
+        timestamp?: number;
+        tolerance_seconds?: number;
+        expected: {
+          valid: boolean;
+          id?: string;
+          error_code?: string;
+        };
+      }>;
+    }>("handle-webhook", "cases.json");
+
+    for (const testCase of fixtures.cases) {
+      const body = testCase.body_fixture ? loadText(...testCase.body_fixture) : (testCase.body ?? "");
+      const signSecret = testCase.sign_secret ?? testCase.secret;
+      const signed =
+        Object.values(testCase.headers).includes("{signed}") || testCase.timestamp !== undefined
+          ? signWebhookPayload(body, signSecret, testCase.timestamp)
+          : null;
+      const headers = Object.fromEntries(
+        Object.entries(testCase.headers).map(([key, value]) => [
+          key,
+          value === "{signed}" ? signed?.header ?? "" : value,
+        ]),
+      );
+
+      if (testCase.expected.valid) {
+        const event = handleWebhook({
+          body,
+          headers,
+          secret: testCase.secret,
+          toleranceSeconds: testCase.tolerance_seconds,
+        });
+        expect(event.id, testCase.name).toBe(testCase.expected.id);
+        continue;
+      }
+
+      try {
+        handleWebhook({
+          body,
+          headers,
+          secret: testCase.secret,
+          toleranceSeconds: testCase.tolerance_seconds,
+        });
+        expect.fail(`Expected handleWebhook failure for ${testCase.name}`);
+      } catch (error) {
+        expect(error, testCase.name).toBeInstanceOf(PrimitiveWebhookError);
+        expect((error as PrimitiveWebhookError).code, testCase.name).toBe(
+          testCase.expected.error_code,
         );
       }
     }
