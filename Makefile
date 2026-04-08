@@ -1,5 +1,5 @@
-.PHONY: node-install node-generate node-check-generated node-test node-check node-build
-.PHONY: python-sync python-generate python-check-generated python-test python-check python-build
+.PHONY: node-install node-generate node-check-generated node-test node-check node-build node-smoke
+.PHONY: python-sync python-generate python-check-generated python-test python-check python-build python-smoke
 .PHONY: go-generate go-check-generated go-check
 .PHONY: shared-check check build
 
@@ -23,6 +23,9 @@ node-check: node-check-generated
 node-build:
 	pnpm --dir sdk-node build
 
+node-smoke:
+	pack_dir=$$(mktemp -d) && smoke_dir=$$(mktemp -d) && tarball=$$(cd sdk-node && npm pack --pack-destination "$$pack_dir") && npm init -y --prefix "$$smoke_dir" && npm install --prefix "$$smoke_dir" "$$pack_dir/$$tarball" && cd "$$smoke_dir" && node --input-type=module -e "const pkg = await import('@primitivedotdev/sdk-node'); if (typeof pkg.handleWebhook !== 'function') throw new Error('missing handleWebhook export')"
+
 python-sync:
 	cd sdk-python && uv sync --dev
 
@@ -42,6 +45,9 @@ python-check: python-check-generated
 
 python-build:
 	cd sdk-python && uv run python -m build
+
+python-smoke:
+	smoke_dir=$$(mktemp -d) && python -m venv "$$smoke_dir/venv" && "$$smoke_dir/venv/bin/pip" install sdk-python/dist/*.whl && "$$smoke_dir/venv/bin/python" -c "import primitive_sdk; primitive_sdk.handle_webhook"
 
 go-generate:
 	cd sdk-go && python scripts/generate_schema_module.py

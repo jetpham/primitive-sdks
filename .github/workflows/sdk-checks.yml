@@ -15,9 +15,6 @@ jobs:
       fail-fast: false
       matrix:
         node-version: [22, 24]
-    defaults:
-      run:
-        working-directory: sdk-node
     steps:
       - uses: actions/checkout@v6
 
@@ -32,36 +29,16 @@ jobs:
           cache-dependency-path: sdk-node/pnpm-lock.yaml
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Check generated node artifacts
-        run: |
-          pnpm generate
-          git diff --exit-code -- src/schema.generated.ts src/types.generated.ts src/validator.generated.ts
+        run: make node-install
 
       - name: Run node checks
-        run: |
-          pnpm lint
-          pnpm typecheck
-          pnpm exec vitest run \
-            tests/webhook/auth.test.ts \
-            tests/webhook/encoding.test.ts \
-            tests/webhook/index.test.ts \
-            tests/webhook/signing.test.ts \
-            tests/webhook/validation.test.ts
+        run: make node-check
 
       - name: Build node package
-        run: pnpm build
+        run: make node-build
 
       - name: Smoke test packed node package
-        run: |
-          pack_dir=$(mktemp -d)
-          smoke_dir=$(mktemp -d)
-          tarball=$(npm pack --pack-destination "$pack_dir")
-          npm init -y --prefix "$smoke_dir"
-          npm install --prefix "$smoke_dir" "$pack_dir/$tarball"
-          cd "$smoke_dir"
-          node --input-type=module -e "const pkg = await import('@primitivedotdev/sdk-node'); if (typeof pkg.handleWebhook !== 'function') throw new Error('missing handleWebhook export')"
+        run: make node-smoke
 
   python:
     name: Python (${{ matrix.python-version }})
@@ -70,9 +47,6 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.11", "3.14"]
-    defaults:
-      run:
-        working-directory: sdk-python
     steps:
       - uses: actions/checkout@v6
 
@@ -81,29 +55,16 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Sync dependencies
-        run: uv sync --dev
-
-      - name: Check generated python artifacts
-        run: |
-          uv run python scripts/generate_schema_module.py
-          uv run python scripts/generate_models.py
-          git diff --exit-code -- src/primitive_sdk/schemas/email_received_event.schema.json src/primitive_sdk/models_generated.py
+        run: make python-sync
 
       - name: Run python checks
-        run: |
-          uv run ruff check .
-          uv run basedpyright
-          uv run pytest tests -k "not shared_fixtures"
+        run: make python-check
 
       - name: Build python package
-        run: uv run python -m build
+        run: make python-build
 
       - name: Smoke test built python wheel
-        run: |
-          smoke_dir=$(mktemp -d)
-          python -m venv "$smoke_dir/venv"
-          "$smoke_dir/venv/bin/pip" install dist/*.whl
-          "$smoke_dir/venv/bin/python" -c "import primitive_sdk; primitive_sdk.handle_webhook"
+        run: make python-smoke
 
   go:
     name: Go (${{ matrix.go-version }})
@@ -112,9 +73,6 @@ jobs:
       fail-fast: false
       matrix:
         go-version: ["1.23", "1.25"]
-    defaults:
-      run:
-        working-directory: sdk-go
     steps:
       - uses: actions/checkout@v6
 
@@ -127,16 +85,8 @@ jobs:
           go-version: ${{ matrix.go-version }}
           cache-dependency-path: sdk-go/go.sum
 
-      - name: Check generated go artifacts
-        run: |
-          python scripts/generate_schema_module.py
-          git diff --exit-code -- schema_generated.go
-
       - name: Run go checks
-        run: |
-          test -z "$(gofmt -l .)"
-          go vet ./...
-          go test ./...
+        run: make go-check
 
   shared:
     name: Shared
@@ -164,15 +114,10 @@ jobs:
           cache-dependency-path: sdk-go/go.sum
 
       - name: Install node dependencies
-        working-directory: sdk-node
-        run: pnpm install --frozen-lockfile
+        run: make node-install
 
       - name: Sync python dependencies
-        working-directory: sdk-python
-        run: uv sync --dev
+        run: make python-sync
 
       - name: Run shared fixture checks
-        run: |
-          cd sdk-node && pnpm exec vitest run tests/webhook/shared-fixtures.test.ts
-          cd ../sdk-python && uv run pytest tests/test_shared_fixtures.py
-          cd ../sdk-go && go test -run TestSharedCompatibilityFixtures ./...
+        run: make shared-check
