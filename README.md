@@ -79,3 +79,4 @@ cd sdk-go && go test ./... && go test -run TestSharedCompatibilityFixtures ./...
 - `docs/architecture.md` gives the high-level repository architecture and workflow model
 - `docs/schema-generation.md` documents the canonical schema and generated artifacts in each SDK
 - `docs/repo-model.md` documents the monorepo task model and package boundaries
+- `RELEASE.md` documents the current manual release process for each SDK
