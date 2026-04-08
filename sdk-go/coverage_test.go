@@ -22,6 +22,16 @@ func (invalidJSONMarshaler) MarshalJSON() ([]byte, error) { return []byte("{"), 
 
 type decodeFailureSchemaInput int
 
+func setSchemaState(schemaJSON []byte, loader *gojsonschema.Schema, err error) {
+	emailReceivedEventSchemaJSON = schemaJSON
+	schemaOnce = sync.Once{}
+	schemaLoader = loader
+	schemaErr = err
+	if loader != nil || err != nil {
+		schemaOnce.Do(func() {})
+	}
+}
+
 func TestPrimitiveWebhookErrors(t *testing.T) {
 	verification := NewWebhookVerificationError("MISSING_SECRET", "", "")
 	if verification.Error() == "" || verification.Name() != "WebhookVerificationError" {
@@ -231,20 +241,11 @@ func TestValidationHelpers(t *testing.T) {
 		t.Fatalf("expected zero-issue validation fallback error: %#v", fallbackErr)
 	}
 	originalSchemaJSON := emailReceivedEventSchemaJSON
-	originalOnce := schemaOnce
-	originalLoader := schemaLoader
-	originalErr := schemaErr
 	t.Cleanup(func() {
-		emailReceivedEventSchemaJSON = originalSchemaJSON
-		schemaOnce = originalOnce
-		schemaLoader = originalLoader
-		schemaErr = originalErr
+		setSchemaState(originalSchemaJSON, nil, nil)
 	})
 
-	emailReceivedEventSchemaJSON = []byte("{")
-	schemaOnce = sync.Once{}
-	schemaLoader = nil
-	schemaErr = nil
+	setSchemaState([]byte("{"), nil, nil)
 	if _, err := ValidateEmailReceivedEvent(payload); err == nil {
 		t.Fatal("expected invalid compiled schema to fail validation")
 	}
@@ -253,17 +254,11 @@ func TestValidationHelpers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to build test schema: %v", err)
 	}
-	emailReceivedEventSchemaJSON = originalSchemaJSON
-	schemaOnce = sync.Once{}
-	schemaLoader = compiledNumberSchema
-	schemaErr = nil
-	schemaOnce.Do(func() {})
+	setSchemaState(originalSchemaJSON, compiledNumberSchema, nil)
 	if _, err := ValidateEmailReceivedEvent(decodeFailureSchemaInput(123)); err == nil {
 		t.Fatal("expected decodeInto branch to fail after schema validation")
 	}
-	schemaOnce = originalOnce
-	schemaLoader = originalLoader
-	schemaErr = originalErr
+	setSchemaState(originalSchemaJSON, nil, nil)
 	if _, err := ValidateEmailReceivedEvent(func() {}); err == nil {
 		t.Fatal("expected schema validation loader errors for unsupported input")
 	}
@@ -271,17 +266,12 @@ func TestValidationHelpers(t *testing.T) {
 	if safePayloadErr.Success || safePayloadErr.Error == nil || safePayloadErr.Error.Field != "payload" {
 		t.Fatalf("expected safe validation to wrap payload-level errors: %#v", safePayloadErr)
 	}
-	schemaOnce = sync.Once{}
-	schemaLoader = compiledNumberSchema
-	schemaErr = nil
-	schemaOnce.Do(func() {})
+	setSchemaState(originalSchemaJSON, compiledNumberSchema, nil)
 	safeDecodeErr := SafeValidateEmailReceivedEvent(decodeFailureSchemaInput(123))
 	if safeDecodeErr.Success || safeDecodeErr.Error == nil || safeDecodeErr.Error.Field != "payload" || !strings.Contains(safeDecodeErr.Error.Message(), "cannot unmarshal number") {
 		t.Fatalf("expected safe validation to wrap decode errors: %#v", safeDecodeErr)
 	}
-	schemaOnce = originalOnce
-	schemaLoader = originalLoader
-	schemaErr = originalErr
+	setSchemaState(originalSchemaJSON, nil, nil)
 	safeSchemaErr := SafeValidateEmailReceivedEvent(map[string]any{"event": "email.received"})
 	if safeSchemaErr.Success || safeSchemaErr.Error == nil || safeSchemaErr.Error.Code() != "SCHEMA_VALIDATION_FAILED" {
 		t.Fatalf("expected safe validation to return schema validation error: %#v", safeSchemaErr)
