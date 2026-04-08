@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 
 from primitive_sdk import validate_email_auth
+from primitive_sdk.types import EmailAuth
 
 
 def create_base_auth(overrides: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -262,6 +263,30 @@ def test_auth_unknown_with_only_spf_pass_mentions_weakness() -> None:
     assert result.verdict == "unknown"
     assert "No DKIM signatures present" in result.reasons
     assert any("SPF alone is weak" in reason for reason in result.reasons)
+
+
+def test_auth_suspicious_medium_confidence_when_monitoring_mode_and_spf_fails() -> None:
+    result = validate_email_auth(
+        create_base_auth(
+            {
+                "spf": "fail",
+                "dmarc": "fail",
+                "dmarcPolicy": "none",
+            }
+        )
+    )
+    assert result.verdict == "suspicious"
+    assert result.confidence == "medium"
+    assert "SPF failed - sending IP not authorized" in result.reasons
+
+
+def test_auth_falls_back_for_unknown_dmarc_values() -> None:
+    result = validate_email_auth(
+        EmailAuth.model_construct(**create_base_auth({"dmarc": "mystery"}))
+    )
+    assert result.verdict == "unknown"
+    assert result.confidence == "low"
+    assert result.reasons == ["Unable to determine email authenticity"]
 
 
 def test_auth_unknown_with_no_authentication() -> None:

@@ -25,6 +25,7 @@ from primitive_sdk import (
     validate_email_auth,
     verify_raw_email_download,
 )
+from primitive_sdk.webhook import _get_signature_header
 
 
 def test_parse_webhook_event_handles_known_and_unknown_events() -> None:
@@ -204,6 +205,40 @@ def test_handle_webhook_finds_signature_with_uppercase_header_name(
     )
 
     assert event.id == "evt_abc123"
+
+
+def test_handle_webhook_uses_first_signature_from_sequence_header(
+    valid_payload: dict[str, Any],
+) -> None:
+    secret = "test-webhook-secret"
+    body = json.dumps(valid_payload)
+    header = sign_webhook_payload(body, secret)["header"]
+
+    event = handle_webhook(
+        body=body,
+        headers={"primitive-signature": [str(header), "ignored"]},
+        secret=secret,
+    )
+
+    assert event.id == "evt_abc123"
+
+
+def test_handle_webhook_coerces_non_string_header_values(valid_payload: dict[str, Any]) -> None:
+    secret = "test-webhook-secret"
+    body = json.dumps(valid_payload)
+    header = sign_webhook_payload(body, secret)["header"]
+
+    event = handle_webhook(
+        body=body,
+        headers={"primitive-signature": (str(header),)},
+        secret=secret,
+    )
+
+    assert event.id == "evt_abc123"
+
+
+def test_get_signature_header_skips_non_matching_keys_and_coerces_scalars() -> None:
+    assert _get_signature_header({"content-type": "application/json", "primitive-signature": 123}) == "123"
 
 
 def test_handle_webhook_rejects_invalid_version_format(

@@ -10,6 +10,14 @@ from primitive_sdk import (
     safe_validate_email_received_event,
     validate_email_received_event,
 )
+from primitive_sdk.validation import _create_validation_error, _format_validation_issue
+
+
+class StubValidationError:
+    def __init__(self, validator: str, message: str, absolute_path: list[str | int]) -> None:
+        self.validator = validator
+        self.message = message
+        self.absolute_path = absolute_path
 
 
 def test_validate_email_received_event_accepts_valid_payload(
@@ -226,3 +234,45 @@ def test_validate_email_received_event_accepts_valid_forward_attachment_counters
         }
     )
     assert event.id == "evt_abc123"
+
+
+def test_format_validation_issue_formats_const_errors() -> None:
+    field, message, suggestion = _format_validation_issue(
+        StubValidationError("const", "must be equal to constant", ["event"])
+    )
+    assert field == "event"
+    assert message == "Invalid value for event: must be equal to constant"
+    assert suggestion == 'Check the value of "event" in the webhook payload.'
+
+
+def test_create_validation_error_falls_back_when_no_errors_are_present() -> None:
+    error = _create_validation_error([])
+    assert error.field == "payload"
+    assert error.args[0] == "Webhook payload failed schema validation"
+    assert error.additional_error_count == 0
+
+
+def test_format_validation_issue_appends_required_field_to_nested_path() -> None:
+    field, message, suggestion = _format_validation_issue(
+        StubValidationError("required", "'id' is a required property", ["email"])
+    )
+    assert field == "email.id"
+    assert message == "Missing required field: id"
+    assert suggestion == 'Add the required field "id" to the webhook payload.'
+
+
+def test_webhook_validation_error_serializes_additional_error_count() -> None:
+    error = WebhookValidationError(
+        "payload",
+        "bad payload",
+        "fix it",
+        [],
+    )
+    assert error.to_json() == {
+        "name": "WebhookValidationError",
+        "code": "SCHEMA_VALIDATION_FAILED",
+        "field": "payload",
+        "message": "bad payload",
+        "suggestion": "fix it",
+        "additionalErrorCount": 0,
+    }
