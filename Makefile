@@ -1,6 +1,6 @@
-.PHONY: node-install node-generate node-check-generated node-test node-check node-build node-smoke
-.PHONY: python-sync python-generate python-check-generated python-test python-check python-build python-smoke
-.PHONY: go-generate go-check-generated go-check go-build
+.PHONY: node-install node-generate node-check-generated node-test node-check node-build node-smoke node-coverage
+.PHONY: python-sync python-generate python-check-generated python-test python-check python-build python-smoke python-coverage
+.PHONY: go-generate go-check-generated go-check go-build go-coverage
 .PHONY: shared-check check build
 
 node-install:
@@ -26,6 +26,9 @@ node-build:
 node-smoke:
 	pack_dir=$$(mktemp -d) && smoke_dir=$$(mktemp -d) && tarball=$$(cd sdk-node && npm pack --pack-destination "$$pack_dir") && cd "$$smoke_dir" && npm init -y && npm install "$$pack_dir/$$tarball" && node --input-type=module -e "const pkg = await import('@primitivedotdev/sdk-node'); if (typeof pkg.handleWebhook !== 'function') throw new Error('missing handleWebhook export')"
 
+node-coverage:
+	pnpm --dir sdk-node test:coverage
+
 python-sync:
 	cd sdk-python && uv sync --dev
 
@@ -49,6 +52,9 @@ python-build:
 python-smoke:
 	smoke_dir=$$(mktemp -d) && python -m venv "$$smoke_dir/venv" && "$$smoke_dir/venv/bin/pip" install sdk-python/dist/*.whl && "$$smoke_dir/venv/bin/python" -c "import primitive_sdk; primitive_sdk.handle_webhook"
 
+python-coverage:
+	cd sdk-python && uv run pytest tests --cov=primitive_sdk --cov-report=term-missing
+
 go-generate:
 	cd sdk-go && python scripts/generate_schema_module.py
 
@@ -62,6 +68,9 @@ go-check: go-check-generated
 
 go-build:
 	cd sdk-go && go build ./...
+
+go-coverage:
+	cd sdk-go && coverage_file=$$(mktemp) && go test ./... -coverprofile="$$coverage_file" && go tool cover -func="$$coverage_file" && rm -f "$$coverage_file"
 
 shared-check:
 	cd sdk-node && pnpm exec vitest run tests/webhook/shared-fixtures.test.ts

@@ -26,6 +26,7 @@
     "generate": "pnpm generate:schema && pnpm generate:types && pnpm generate:validator",
     "build": "pnpm generate && tsdown",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "typecheck": "pnpm generate && tsc --noEmit",
     "lint": "biome check src/",
@@ -65,6 +66,7 @@
     "tsdown": "^0.9.1",
     "tsx": "^4.21.0",
     "typescript": "^5.7.2",
+    "@vitest/coverage-v8": "^2.1.8",
     "vitest": "^2.1.8"
   }
 }

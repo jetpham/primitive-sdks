@@ -40,6 +40,9 @@ jobs:
       - name: Smoke test packed node package
         run: make node-smoke
 
+      - name: Collect node coverage
+        run: make node-coverage
+
   python:
     name: Python (${{ matrix.python-version }})
     runs-on: ubuntu-latest
@@ -66,6 +69,9 @@ jobs:
       - name: Smoke test built python wheel
         run: make python-smoke
 
+      - name: Collect python coverage
+        run: make python-coverage
+
   go:
     name: Go (${{ matrix.go-version }})
     runs-on: ubuntu-latest
@@ -90,6 +96,9 @@ jobs:
 
       - name: Build go package
         run: make go-build
+
+      - name: Collect go coverage
+        run: make go-coverage
 
   shared:
     name: Shared
