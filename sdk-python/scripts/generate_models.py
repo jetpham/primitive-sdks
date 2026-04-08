@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -7,6 +8,21 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = ROOT / "src" / "primitive_sdk" / "schemas" / "email_received_event.schema.json"
 OUTPUT = ROOT / "src" / "primitive_sdk" / "models_generated.py"
+
+
+def _run_ruff(*args: str) -> None:
+    preferred = [sys.executable, "-m", "ruff", *args]
+    result = subprocess.run(preferred, check=False)
+    if result.returncode == 0:
+        return
+
+    fallback_env = os.environ.copy()
+    fallback_env["PATH"] = ":".join(
+        entry
+        for entry in fallback_env.get("PATH", "").split(":")
+        if entry and Path(entry) != ROOT / ".venv" / "bin"
+    )
+    subprocess.run(["ruff", *args], check=True, env=fallback_env)
 def main() -> None:
     subprocess.run(
         [
@@ -33,8 +49,8 @@ def main() -> None:
         ],
         check=True,
     )
-    subprocess.run(["uv", "run", "--project", str(ROOT), "ruff", "check", "--fix", str(OUTPUT)], check=True)
-    subprocess.run(["uv", "run", "--project", str(ROOT), "ruff", "format", str(OUTPUT)], check=True)
+    _run_ruff("check", "--fix", str(OUTPUT))
+    _run_ruff("format", str(OUTPUT))
 
 
 if __name__ == "__main__":
