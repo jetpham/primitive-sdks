@@ -46,7 +46,7 @@ app.post("/webhooks/email", express.raw({ type: "application/json" }), (req, res
 });
 ```
 
-## API
+## Core API
 
 ### Main functions
 
@@ -127,6 +127,14 @@ pnpm generate
 pnpm typecheck
 pnpm test
 pnpm build
+```
+
+Or from `primitive-sdks/`:
+
+```bash
+make node-install
+make node-check
+make node-build
 ```
 
 If you use Nix, from `primitive-sdks/`:

@@ -12,6 +12,14 @@ The repository currently contains:
 - `json-schema/` for the canonical webhook schema
 - `test-fixtures/` for shared cross-SDK compatibility fixtures
 
+## SDKs
+
+| SDK | Install target | README |
+| --- | --- | --- |
+| Node.js | `npm install @primitivedotdev/sdk-node` | `sdk-node/README.md` |
+| Python | `pip install primitive-sdk` | `sdk-python/README.md` |
+| Go | `go get github.com/primitivedotdev/primitive-sdks/sdk-go` | `sdk-go/README.md` |
+
 ## Purpose
 
 Each SDK implements the same core webhook workflow:
