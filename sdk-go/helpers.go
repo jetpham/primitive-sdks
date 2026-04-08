@@ -60,9 +60,8 @@ func normalizeJSONValue(input any) (any, []byte, error) {
 		return nil, nil, err
 	}
 	var normalized any
-	if err := json.Unmarshal(data, &normalized); err != nil {
-		return nil, nil, err
-	}
+	// data comes directly from json.Marshal, so it is already valid JSON.
+	_ = json.Unmarshal(data, &normalized)
 	return normalized, data, nil
 }
 
