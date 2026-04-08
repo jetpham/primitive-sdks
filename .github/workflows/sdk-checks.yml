@@ -88,6 +88,9 @@ jobs:
       - name: Run go checks
         run: make go-check
 
+      - name: Build go package
+        run: make go-build
+
   shared:
     name: Shared
     runs-on: ubuntu-latest

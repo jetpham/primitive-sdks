@@ -1,6 +1,6 @@
 .PHONY: node-install node-generate node-check-generated node-test node-check node-build node-smoke
 .PHONY: python-sync python-generate python-check-generated python-test python-check python-build python-smoke
-.PHONY: go-generate go-check-generated go-check
+.PHONY: go-generate go-check-generated go-check go-build
 .PHONY: shared-check check build
 
 node-install:
@@ -59,6 +59,9 @@ go-check: go-check-generated
 	cd sdk-go && test -z "$(gofmt -l .)"
 	cd sdk-go && go vet ./...
 	cd sdk-go && go test ./...
+
+go-build:
+	cd sdk-go && go build ./...
 
 shared-check:
 	cd sdk-node && pnpm exec vitest run tests/webhook/shared-fixtures.test.ts
