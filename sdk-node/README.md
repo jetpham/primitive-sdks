@@ -1,13 +1,14 @@
 # `@primitivedotdev/sdk-node`
 
-Official Primitive Node.js SDK for webhook verification and validation.
+Official Primitive Node.js SDK.
 
-This package helps you:
+This package ships three Node.js modules:
 
-- verify Primitive webhook signatures
-- parse webhook request bodies
-- validate webhook payloads against the canonical JSON schema
-- work with typed `email.received` events in Node.js
+- `@primitivedotdev/sdk-node` for the webhook module
+- `@primitivedotdev/sdk-node/contract` for the contract module
+- `@primitivedotdev/sdk-node/parser` for the parser module
+
+`contract` and `parser` are only available in the Node SDK. The Go and Python SDKs expose the webhook surface only.
 
 ## Requirements
 
@@ -19,7 +20,11 @@ This package helps you:
 npm install @primitivedotdev/sdk-node
 ```
 
-## Basic Usage
+## Modules
+
+### Webhook
+
+The root entrypoint remains webhook-focused.
 
 ```ts
 import { handleWebhook, PrimitiveWebhookError } from "@primitivedotdev/sdk-node";
@@ -46,52 +51,105 @@ app.post("/webhooks/email", express.raw({ type: "application/json" }), (req, res
 });
 ```
 
-## Core API
+The same API is also available from `@primitivedotdev/sdk-node/webhook`.
 
-### Main functions
+Webhook exports include:
 
 - `handleWebhook(options)`
-  - verifies the webhook signature
-  - decodes and parses the request body
-  - validates the payload
-  - returns a typed `EmailReceivedEvent`
 - `parseWebhookEvent(input)`
-  - parses a JSON payload into a known webhook event or `UnknownEvent`
-  - validates known event types against the canonical schema
-  - throws `WebhookValidationError` for malformed known events
 - `validateEmailReceivedEvent(input)`
-  - validates an `email.received` payload and returns the typed event
 - `safeValidateEmailReceivedEvent(input)`
-  - returns `{ success, data }` or `{ success, error }`
 - `verifyWebhookSignature(options)`
-  - verifies `Primitive-Signature`
 - `validateEmailAuth(auth)`
-  - computes a verdict from SPF, DKIM, and DMARC results
-
-### Helpful exports
-
 - `emailReceivedEventJsonSchema`
 - `WEBHOOK_VERSION`
-- `PrimitiveWebhookError`
-- `WebhookVerificationError`
-- `WebhookPayloadError`
-- `WebhookValidationError`
-- `RawEmailDecodeError`
+- webhook error classes and webhook types
 
-### Types
+### Contract
 
-The package exports the main webhook types, including:
+Use the contract module when constructing canonical Primitive webhook payloads on the producer side.
 
-- `EmailReceivedEvent`
-- `WebhookEvent`
-- `UnknownEvent`
-- `EmailAuth`
-- `EmailAnalysis`
-- `ParsedData`
-- `RawContent`
-- `WebhookAttachment`
+```ts
+import { buildEmailReceivedEvent, signWebhookPayload } from "@primitivedotdev/sdk-node/contract";
 
-## JSON Schema
+const event = buildEmailReceivedEvent({
+  email_id: "email-123",
+  endpoint_id: "endpoint-456",
+  message_id: "<msg@example.com>",
+  sender: "from@example.com",
+  recipient: "to@example.com",
+  subject: "Hello",
+  received_at: "2025-01-01T00:00:00Z",
+  smtp_helo: "mail.example.com",
+  smtp_mail_from: "from@example.com",
+  smtp_rcpt_to: ["to@example.com"],
+  raw_bytes: Buffer.from("hello"),
+  raw_sha256: "a".repeat(64),
+  raw_size_bytes: 5,
+  attempt_count: 1,
+  date_header: null,
+  download_url: "https://example.com/raw",
+  download_expires_at: "2025-01-02T00:00:00Z",
+  attachments_download_url: null,
+  auth: {
+    spf: "pass",
+    dmarc: "pass",
+    dmarcPolicy: "reject",
+    dmarcFromDomain: "example.com",
+    dmarcSpfAligned: true,
+    dmarcDkimAligned: true,
+    dmarcSpfStrict: false,
+    dmarcDkimStrict: false,
+    dkimSignatures: [],
+  },
+  analysis: {},
+});
+
+const signature = signWebhookPayload(JSON.stringify(event), "whsec_test");
+```
+
+Contract exports include:
+
+- `buildEmailReceivedEvent(input, options?)`
+- `generateEventId(endpointId, emailId)`
+- `RAW_EMAIL_INLINE_THRESHOLD`
+- `signWebhookPayload(rawBody, secret, timestamp?)`
+- `WEBHOOK_VERSION`
+- contract input and payload helper types
+
+### Parser
+
+Use the parser module for raw `.eml` parsing and attachment extraction.
+
+```ts
+import {
+  bundleAttachments,
+  parseEmail,
+  parseEmailWithAttachments,
+  toParsedDataComplete,
+} from "@primitivedotdev/sdk-node/parser";
+
+const parsed = await parseEmailWithAttachments(emlBuffer);
+const archive = await bundleAttachments(parsed.attachments);
+const webhookParsed = toParsedDataComplete(parsed, null);
+
+await parseEmail(emlBuffer.toString("utf8"));
+```
+
+Parser exports include:
+
+- `parseEmail(emlRaw)`
+- `parseEmailWithAttachments(emlBuffer, options?)`
+- `bundleAttachments(attachments)`
+- `extractAttachmentMetadata(attachments)`
+- `getAttachmentsStorageKey(emailId, sha256)`
+- `toParsedDataComplete(parsed, attachmentsDownloadUrl)`
+- `toWebhookAttachments(attachments)`
+- `attachmentMetadataToWebhookAttachments(metadata)`
+- `toCanonicalHeaders(parsed)`
+- parser attachment and bundle types
+
+## Shared Schema
 
 The webhook payload contract is defined by the canonical JSON schema in the repository and is exported by this package as `emailReceivedEventJsonSchema`.
 
@@ -143,21 +201,33 @@ If you use Nix, from `primitive-sdks/`:
 nix develop
 ```
 
-## Repository Layout
+## Package Layout
 
 ```text
-primitive-sdks/
-  json-schema/
-    email-received-event.schema.json
-  sdk-node/
-    src/
-      webhook/
-      validation.ts
-      schema.generated.ts
-      types.ts
-      types.generated.ts
-    scripts/
-      generate-schema-module.ts
-      generate-types.ts
-      generate-validator.ts
+sdk-node/
+  src/
+    contract/
+      contract.ts
+      index.ts
+    parser/
+      attachment-bundler.ts
+      attachment-parser.ts
+      email-parser.ts
+      index.ts
+      mapping.ts
+    webhook/
+      auth.ts
+      encoding.ts
+      errors.ts
+      index.ts
+      parsing.ts
+      signing.ts
+      version.ts
+    generated/
+      email-received-event.validator.generated.ts
+    index.ts
+    schema.generated.ts
+    types.generated.ts
+    types.ts
+    validation.ts
 ```

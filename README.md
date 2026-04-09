@@ -2,12 +2,11 @@
 
 [![SDK Checks](https://github.com/jetpham/primitive-sdks/actions/workflows/sdk-checks.yml/badge.svg?branch=main)](https://github.com/jetpham/primitive-sdks/actions/workflows/sdk-checks.yml)
 
-Monorepo for Primitive webhook SDKs.
+Monorepo for Primitive SDKs.
 
 The repository currently contains:
 
 - `sdk-node/` for the Node.js SDK
-- `contract-node/` for the server-side Node contract package
 - `sdk-python/` for the Python SDK
 - `sdk-go/` for the Go SDK
 - `json-schema/` for the canonical webhook schema
@@ -18,7 +17,6 @@ The repository currently contains:
 | SDK | Install target | README |
 | --- | --- | --- |
 | Node.js | `npm install @primitivedotdev/sdk-node` | `sdk-node/README.md` |
-| Contract Node | `npm install @primitivedotdev/contract-node` | `contract-node/README.md` |
 | Python | `pip install primitive-sdk` | `sdk-python/README.md` |
 | Go | `go get github.com/primitivedotdev/primitive-sdks/sdk-go` | `sdk-go/README.md` |
 
@@ -31,12 +29,13 @@ Each SDK implements the same core webhook workflow:
 - validate payloads against the canonical JSON schema
 - expose typed `email.received` events in the target language
 
+The Node SDK also ships Node-only `contract` and `parser` modules under `@primitivedotdev/sdk-node/contract` and `@primitivedotdev/sdk-node/parser`.
+
 ## Repository Layout
 
 ```text
 primitive-sdks/
   .github/workflows/
-  contract-node/
   json-schema/
   sdk-go/
   sdk-node/
@@ -64,9 +63,7 @@ make release-check
 The `Makefile` wraps each SDK's native commands. You can still run them directly from each SDK directory when needed:
 
 ```bash
-pnpm install
 cd sdk-node && pnpm typecheck && pnpm test
-cd contract-node && pnpm typecheck && pnpm test
 cd sdk-python && uv sync --dev && uv run pytest && uv run ruff check . && uv run basedpyright
 cd sdk-go && go test ./... && go test -run TestSharedCompatibilityFixtures ./...
 ```
@@ -76,7 +73,6 @@ cd sdk-go && go test ./... && go test -run TestSharedCompatibilityFixtures ./...
 `.github/workflows/sdk-checks.yml` runs:
 
 - Node SDK checks
-- Contract Node checks
 - Python SDK checks
 - Go SDK checks
 - shared fixture compatibility checks across all three SDKs

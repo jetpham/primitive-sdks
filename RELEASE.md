@@ -1,7 +1,6 @@
 # Release Process
 
-This repository publishes three independent SDKs from one shared webhook
-contract.
+This repository publishes three language SDKs from one shared webhook contract.
 
 - Node: `@primitivedotdev/sdk-node`
 - Python: `primitive-sdk`
@@ -23,6 +22,7 @@ Use this process when cutting a release for one or more SDKs.
 2. Run `make node-check node-build node-smoke`.
 3. Publish from `sdk-node/` with your normal npm release credentials.
 4. Verify the package contents with `npm view @primitivedotdev/sdk-node version`.
+5. Confirm the packed artifact exposes `@primitivedotdev/sdk-node`, `@primitivedotdev/sdk-node/webhook`, `@primitivedotdev/sdk-node/contract`, and `@primitivedotdev/sdk-node/parser`.
 
 ## Python Release
 

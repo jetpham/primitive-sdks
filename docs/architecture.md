@@ -2,7 +2,7 @@
 
 `primitive-sdks` is a multi-language repository for Primitive webhook SDKs.
 
-The repository is organized around one shared webhook contract and three independent language packages that implement the same core workflow.
+The repository is organized around one shared webhook contract and three language packages that implement the same core workflow.
 
 ## Core Flow
 
@@ -37,8 +37,10 @@ The shared fixtures define behavioral parity expectations across SDKs, including
 ### Node
 
 - package path: `sdk-node/`
+- published modules: root webhook entrypoint plus `webhook`, `contract`, and `parser` subpaths
 - runtime validation: generated AJV standalone validator
 - generated artifacts: schema module, TypeScript types, validator module
+- Node-only modules: `contract` and `parser`
 
 ### Python
 
