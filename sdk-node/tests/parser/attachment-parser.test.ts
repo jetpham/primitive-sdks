@@ -395,6 +395,14 @@ describe("filename sanitization", () => {
     expect(result.endsWith(".pdf")).toBe(true);
   });
 
+  test("truncates long filenames without preserving a long extension", () => {
+    const longName = `${"a".repeat(210)}.${"b".repeat(20)}`;
+    const result = sanitizeFilename(longName, 0);
+
+    expect(result.length).toBe(200);
+    expect(result).toBe(longName.slice(0, 200));
+  });
+
   test("handles null/empty filename", () => {
     expect(sanitizeFilename(null, 5)).toBe("attachment_5");
     expect(sanitizeFilename("", 3)).toBe("attachment_3");
@@ -484,6 +492,12 @@ describe("content type normalization", () => {
     expect(normalizeContentType(undefined)).toBe("application/octet-stream");
     expect(normalizeContentType("")).toBe("application/octet-stream");
     expect(normalizeContentType("   ")).toBe("application/octet-stream");
+  });
+
+  test("falls back when the media type is empty after splitting", () => {
+    expect(normalizeContentType(" ; charset=utf-8")).toBe(
+      "application/octet-stream",
+    );
   });
 });
 
