@@ -1,9 +1,10 @@
 /**
  * @primitivedotdev/sdk-node
  *
- * Official Primitive Node.js SDK — webhook verification and validation.
+ * Official Primitive Node.js SDK.
  *
- * This root entry re-exports the webhook SDK.
+ * The root entrypoint remains webhook-focused. Use subpath imports for the
+ * Node-only contract and parser modules.
  *
  * @packageDocumentation
  */
