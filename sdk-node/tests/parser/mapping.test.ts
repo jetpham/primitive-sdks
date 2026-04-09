@@ -1,21 +1,26 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import type { AttachmentMetadata } from "../../src/parser/attachment-bundler.js";
+import type {
+  ParsedAttachment,
+  ParsedEmailWithAttachments,
+} from "../../src/parser/attachment-parser.js";
 import {
-  toParsedDataComplete,
-  toWebhookAttachments,
   attachmentMetadataToWebhookAttachments,
   toCanonicalHeaders,
+  toParsedDataComplete,
+  toWebhookAttachments,
 } from "../../src/parser/mapping.js";
-import type { ParsedEmailWithAttachments, ParsedAttachment } from "../../src/parser/attachment-parser.js";
-import type { AttachmentMetadata } from "../../src/parser/attachment-bundler.js";
 
-function createAttachment(overrides: Partial<ParsedAttachment> = {}): ParsedAttachment {
+function createAttachment(
+  overrides: Partial<ParsedAttachment> = {},
+): ParsedAttachment {
   return {
     id: "att-1",
     partIndex: 0,
     filename: "document.pdf",
     contentType: "application/pdf",
     contentTypeNorm: "application/pdf",
-    contentDispositionRaw: "attachment; filename=\"document.pdf\"",
+    contentDispositionRaw: 'attachment; filename="document.pdf"',
     disposition: "attachment",
     contentTransferEncoding: "base64",
     contentIdRaw: null,
@@ -32,7 +37,9 @@ function createAttachment(overrides: Partial<ParsedAttachment> = {}): ParsedAtta
   };
 }
 
-function createParsedEmail(overrides: Partial<ParsedEmailWithAttachments> = {}): ParsedEmailWithAttachments {
+function createParsedEmail(
+  overrides: Partial<ParsedEmailWithAttachments> = {},
+): ParsedEmailWithAttachments {
   return {
     bodyText: "Hello world",
     bodyHtml: "<p>Hello <script>alert('xss')</script>world</p>",
@@ -60,9 +67,14 @@ describe("toParsedDataComplete", () => {
     expect(result.status).toBe("complete");
     expect(result.error).toBeNull();
     expect(result.body_text).toBe("Hello world");
-    expect(result.reply_to).toEqual([{ address: "reply@example.com", name: "Reply" }]);
+    expect(result.reply_to).toEqual([
+      { address: "reply@example.com", name: "Reply" },
+    ]);
     expect(result.in_reply_to).toEqual(["<prev@example.com>"]);
-    expect(result.references).toEqual(["<thread1@example.com>", "<thread2@example.com>"]);
+    expect(result.references).toEqual([
+      "<thread1@example.com>",
+      "<thread2@example.com>",
+    ]);
     expect(result.cc).toBeNull();
     expect(result.bcc).toBeNull();
   });
@@ -108,8 +120,16 @@ describe("toParsedDataComplete", () => {
     const parsed = createParsedEmail({
       attachments: [
         createAttachment({ isDownloadable: true, filename: "doc.pdf" }),
-        createAttachment({ isDownloadable: false, filename: "inline.png", partIndex: 1 }),
-        createAttachment({ isDownloadable: true, filename: "photo.jpg", partIndex: 2 }),
+        createAttachment({
+          isDownloadable: false,
+          filename: "inline.png",
+          partIndex: 1,
+        }),
+        createAttachment({
+          isDownloadable: true,
+          filename: "photo.jpg",
+          partIndex: 2,
+        }),
       ],
     });
     const result = toParsedDataComplete(parsed, null);

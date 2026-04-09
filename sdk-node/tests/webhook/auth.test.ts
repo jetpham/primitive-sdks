@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { validateEmailAuth } from "../../src/webhook/auth.js";
 import type { DkimSignature, EmailAuth } from "../../src/types.js";
+import { validateEmailAuth } from "../../src/webhook/auth.js";
 
 // Helper to create a base EmailAuth object
 function createBaseAuth(overrides: Partial<EmailAuth> = {}): EmailAuth {

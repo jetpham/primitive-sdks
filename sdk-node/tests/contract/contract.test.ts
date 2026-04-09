@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateEmailReceivedEvent } from "../../src/webhook/index.js";
+import * as contractPackage from "../../src/contract/index.js";
 import {
   buildEmailReceivedEvent,
   type EmailReceivedEventInput,
@@ -9,7 +9,7 @@ import {
   RAW_EMAIL_INLINE_THRESHOLD,
   WEBHOOK_VERSION,
 } from "../../src/contract/index.js";
-import * as contractPackage from "../../src/contract/index.js";
+import { validateEmailReceivedEvent } from "../../src/webhook/index.js";
 
 describe("contract", () => {
   describe("constants", () => {

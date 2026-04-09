@@ -1,23 +1,22 @@
 .PHONY: node-install node-generate node-check-generated node-test node-check node-build node-smoke node-coverage
-.PHONY: contract-node-install contract-node-test contract-node-check contract-node-build contract-node-coverage
 .PHONY: python-sync python-generate python-check-generated python-test python-check python-build python-smoke python-coverage
 .PHONY: go-generate go-check-generated go-check go-build go-coverage
 .PHONY: shared-check check build release-check
 
 node-install:
-	pnpm install --frozen-lockfile
+	pnpm --dir sdk-node install --frozen-lockfile
 
 node-generate:
 	pnpm --dir sdk-node generate
 
 node-check-generated:
-	cd sdk-node && pnpm generate && git diff --exit-code -- src/schema.generated.ts src/types.generated.ts src/validator.generated.ts
+	cd sdk-node && pnpm generate && git diff --exit-code -- src/schema.generated.ts src/types.generated.ts src/generated/email-received-event.validator.generated.ts
 
 node-test:
 	pnpm --dir sdk-node test
 
 node-check: node-check-generated
-	if command -v biome >/dev/null 2>&1; then cd sdk-node && biome check src/; else pnpm --dir sdk-node lint; fi
+	if command -v biome >/dev/null 2>&1; then cd sdk-node && biome check src/ tests/; else pnpm --dir sdk-node lint; fi
 	pnpm --dir sdk-node typecheck
 	$(MAKE) node-test
 
@@ -25,27 +24,10 @@ node-build:
 	pnpm --dir sdk-node build
 
 node-smoke:
-	pack_dir=$$(mktemp -d) && smoke_dir=$$(mktemp -d) && tarball=$$(cd sdk-node && npm pack --pack-destination "$$pack_dir") && cd "$$smoke_dir" && npm init -y && npm install "$$pack_dir/$$tarball" && node --input-type=module -e "const pkg = await import('@primitivedotdev/sdk-node'); if (typeof pkg.handleWebhook !== 'function') throw new Error('missing handleWebhook export')"
+	pack_dir=$$(mktemp -d) && smoke_dir=$$(mktemp -d) && tarball=$$(cd sdk-node && npm pack --pack-destination "$$pack_dir") && cd "$$smoke_dir" && npm init -y && npm install "$$pack_dir/$$tarball" && node --input-type=module -e "const root = await import('@primitivedotdev/sdk-node'); const webhook = await import('@primitivedotdev/sdk-node/webhook'); const contract = await import('@primitivedotdev/sdk-node/contract'); const parser = await import('@primitivedotdev/sdk-node/parser'); if (typeof root.handleWebhook !== 'function') throw new Error('missing root handleWebhook export'); if (typeof webhook.handleWebhook !== 'function') throw new Error('missing webhook handleWebhook export'); if (typeof contract.buildEmailReceivedEvent !== 'function') throw new Error('missing contract buildEmailReceivedEvent export'); if (typeof parser.parseEmail !== 'function') throw new Error('missing parser parseEmail export');"
 
 node-coverage:
 	pnpm --dir sdk-node test:coverage
-
-contract-node-install:
-	pnpm install --frozen-lockfile
-
-contract-node-test: node-build
-	pnpm --dir contract-node test
-
-contract-node-check: node-build
-	if command -v biome >/dev/null 2>&1; then cd contract-node && biome check src/ tests/; else pnpm --dir contract-node lint; fi
-	pnpm --dir contract-node typecheck
-	$(MAKE) contract-node-test
-
-contract-node-build: node-build
-	pnpm --dir contract-node build
-
-contract-node-coverage: node-build
-	pnpm --dir contract-node test:coverage
 
 python-sync:
 	cd sdk-python && uv sync --dev
@@ -95,8 +77,8 @@ shared-check:
 	cd sdk-python && uv run pytest tests/test_shared_fixtures.py
 	cd sdk-go && go test -run TestSharedCompatibilityFixtures ./...
 
-check: node-check contract-node-check python-check go-check shared-check
+check: node-check python-check go-check shared-check
 
-build: node-build contract-node-build python-build
+build: node-build python-build
 
-release-check: node-check node-build node-smoke contract-node-check contract-node-build python-check python-build python-smoke go-check go-build shared-check
+release-check: node-check node-build node-smoke python-check python-build python-smoke go-check go-build shared-check

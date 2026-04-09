@@ -37,8 +37,8 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "typecheck": "pnpm generate && tsc --noEmit",
-    "lint": "biome check src/",
-    "lint:fix": "biome check --write src/",
+    "lint": "biome check src/ tests/",
+    "lint:fix": "biome check --write src/ tests/",
     "prepublishOnly": "pnpm build"
   },
   "keywords": ["primitive", "email", "webhook", "signature", "hmac", "contract", "parser"],

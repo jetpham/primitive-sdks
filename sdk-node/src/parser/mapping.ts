@@ -8,11 +8,7 @@
  * @packageDocumentation
  */
 
-import type {
-  EmailAddress,
-  ParsedDataComplete,
-  WebhookAttachment,
-} from "../types.js";
+import type { ParsedDataComplete, WebhookAttachment } from "../types.js";
 import type { AttachmentMetadata } from "./attachment-bundler.js";
 import type {
   ParsedAttachment,

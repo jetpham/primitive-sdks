@@ -23,7 +23,12 @@ describe("PrimitiveWebhookError formatting", () => {
   });
 
   it("formats validation errors without extra error counts", () => {
-    const error = new WebhookValidationError("payload", "bad payload", "fix it", []);
+    const error = new WebhookValidationError(
+      "payload",
+      "bad payload",
+      "fix it",
+      [],
+    );
 
     expect(error.toString()).toBe(
       "WebhookValidationError [SCHEMA_VALIDATION_FAILED]: bad payload\n\nSuggestion: fix it",
@@ -31,11 +36,26 @@ describe("PrimitiveWebhookError formatting", () => {
   });
 
   it("formats validation errors with pluralized extra counts", () => {
-    const error = new WebhookValidationError("payload", "bad payload", "fix it", [
-      { instancePath: "/event", keyword: "const", params: {}, schemaPath: "" },
-      { instancePath: "/id", keyword: "type", params: {}, schemaPath: "" },
-      { instancePath: "/email", keyword: "required", params: {}, schemaPath: "" },
-    ]);
+    const error = new WebhookValidationError(
+      "payload",
+      "bad payload",
+      "fix it",
+      [
+        {
+          instancePath: "/event",
+          keyword: "const",
+          params: {},
+          schemaPath: "",
+        },
+        { instancePath: "/id", keyword: "type", params: {}, schemaPath: "" },
+        {
+          instancePath: "/email",
+          keyword: "required",
+          params: {},
+          schemaPath: "",
+        },
+      ],
+    );
 
     expect(error.toString()).toContain("(and 2 more validation errors)");
     expect(error.toJSON()).toEqual({
@@ -49,10 +69,20 @@ describe("PrimitiveWebhookError formatting", () => {
   });
 
   it("formats validation errors with singular extra counts", () => {
-    const error = new WebhookValidationError("payload", "bad payload", "fix it", [
-      { instancePath: "/event", keyword: "const", params: {}, schemaPath: "" },
-      { instancePath: "/id", keyword: "type", params: {}, schemaPath: "" },
-    ]);
+    const error = new WebhookValidationError(
+      "payload",
+      "bad payload",
+      "fix it",
+      [
+        {
+          instancePath: "/event",
+          keyword: "const",
+          params: {},
+          schemaPath: "",
+        },
+        { instancePath: "/id", keyword: "type", params: {}, schemaPath: "" },
+      ],
+    );
 
     expect(error.toString()).toContain("(and 1 more validation error)");
   });
@@ -66,6 +96,8 @@ describe("PrimitiveWebhookError formatting", () => {
     expect(payloadError.suggestion).toContain("request body was empty");
     expect(rawError.message).toBe("custom message");
     expect(rawError.suggestion).toContain("corrupted");
-    expect(defaultRawError.message).toBe("Raw email content not included inline");
+    expect(defaultRawError.message).toBe(
+      "Raw email content not included inline",
+    );
   });
 });

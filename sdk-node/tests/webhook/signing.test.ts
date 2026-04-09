@@ -952,7 +952,7 @@ describe("customer implementation example", () => {
   const rawBody = JSON.stringify(payload);
 
   it("customers can verify signature using Stripe-style format", () => {
-    const { header, v1, timestamp } = signWebhookPayload(rawBody, secret);
+    const { v1, timestamp } = signWebhookPayload(rawBody, secret);
 
     // Customer receives:
     // - Primitive-Signature: t={timestamp},v1={hex}

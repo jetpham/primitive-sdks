@@ -232,7 +232,7 @@ function normalizeReferences(
 export function normalizeContentType(
   contentType: string | undefined | null,
 ): string {
-  if (!contentType || !contentType.trim()) {
+  if (!contentType?.trim()) {
     return "application/octet-stream";
   }
   const mediaType = contentType.split(";")[0].trim().toLowerCase();
@@ -298,7 +298,7 @@ export function sanitizeFilename(
 
   let safe = filename
     // Remove path separators (prevent path traversal)
-    .replace(/[\/\\]/g, "_")
+    .replace(/[/\\]/g, "_")
     // Remove colons (archiver library treats them as drive letters and strips content before)
     .replace(/:/g, "-")
     // Remove .. sequences (path traversal)

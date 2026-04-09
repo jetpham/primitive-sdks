@@ -83,7 +83,9 @@ const validPayload = {
 describe("validation", () => {
   afterEach(() => {
     vi.resetModules();
-    vi.doUnmock("../../src/generated/email-received-event.validator.generated.js");
+    vi.doUnmock(
+      "../../src/generated/email-received-event.validator.generated.js",
+    );
   });
 
   it("returns typed event for valid payload", () => {
@@ -102,7 +104,9 @@ describe("validation", () => {
       expect(validationError.message).toBe(
         "Expected webhook payload object but received string",
       );
-      expect(validationError.suggestion).toContain("Webhook payloads must be objects");
+      expect(validationError.suggestion).toContain(
+        "Webhook payloads must be objects",
+      );
     }
   });
 
@@ -134,12 +138,15 @@ describe("validation", () => {
   });
 
   it("throws WebhookValidationError for invalid payload", () => {
-    expect(() => validateEmailReceivedEvent({})).toThrow(WebhookValidationError);
+    expect(() => validateEmailReceivedEvent({})).toThrow(
+      WebhookValidationError,
+    );
   });
 
   it("accepts any valid date-formatted version", () => {
     expect(
-      validateEmailReceivedEvent({ ...validPayload, version: "2030-12-31" }).version,
+      validateEmailReceivedEvent({ ...validPayload, version: "2030-12-31" })
+        .version,
     ).toBe("2030-12-31");
   });
 
@@ -166,9 +173,12 @@ describe("validation", () => {
 
   it("falls back to a payload-level error when the validator reports no issues", async () => {
     const mockedValidator = Object.assign(() => false, { errors: undefined });
-    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
-      default: mockedValidator,
-    }));
+    vi.doMock(
+      "../../src/generated/email-received-event.validator.generated.js",
+      () => ({
+        default: mockedValidator,
+      }),
+    );
 
     const { validateEmailReceivedEvent: validateWithMock } = await import(
       "../../src/validation.js"
@@ -192,13 +202,15 @@ describe("validation", () => {
 
   it("handles null validator errors in the safe validation path", async () => {
     const mockedValidator = Object.assign(() => false, { errors: null });
-    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
-      default: mockedValidator,
-    }));
-
-    const { safeValidateEmailReceivedEvent: safeValidateWithMock } = await import(
-      "../../src/validation.js"
+    vi.doMock(
+      "../../src/generated/email-received-event.validator.generated.js",
+      () => ({
+        default: mockedValidator,
+      }),
     );
+
+    const { safeValidateEmailReceivedEvent: safeValidateWithMock } =
+      await import("../../src/validation.js");
 
     const result = safeValidateWithMock(validPayload);
     expect(result.success).toBe(false);
@@ -216,7 +228,9 @@ describe("validation", () => {
           ...validPayload.email,
           auth: {
             ...validPayload.email.auth,
-            dkimSignatures: [{ ...validPayload.email.auth.dkimSignatures[0], algo: 123 }],
+            dkimSignatures: [
+              { ...validPayload.email.auth.dkimSignatures[0], algo: 123 },
+            ],
           },
         },
       });
@@ -225,7 +239,9 @@ describe("validation", () => {
       expect(error).toBeInstanceOf(WebhookValidationError);
       const validationError = error as WebhookValidationError;
       expect(validationError.field).toContain("email.auth.dkimSignatures");
-      expect(validationError.message).toContain("expected string,null but got number");
+      expect(validationError.message).toContain(
+        "expected string,null but got number",
+      );
       expect(validationError.suggestion).toContain("Check that");
     }
   });
@@ -262,15 +278,20 @@ describe("validation", () => {
         },
       ],
     });
-    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
-      default: mockedValidator,
-    }));
+    vi.doMock(
+      "../../src/generated/email-received-event.validator.generated.js",
+      () => ({
+        default: mockedValidator,
+      }),
+    );
 
     const { validateEmailReceivedEvent: validateWithMock } = await import(
       "../../src/validation.js"
     );
 
-    expect(() => validateWithMock(validPayload)).toThrowError(/Missing required field: unknown/);
+    expect(() => validateWithMock(validPayload)).toThrowError(
+      /Missing required field: unknown/,
+    );
   });
 
   it("uses fallback messages when validator errors omit details", async () => {
@@ -296,9 +317,12 @@ describe("validation", () => {
         },
       ],
     });
-    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
-      default: mockedValidator,
-    }));
+    vi.doMock(
+      "../../src/generated/email-received-event.validator.generated.js",
+      () => ({
+        default: mockedValidator,
+      }),
+    );
 
     const { validateEmailReceivedEvent: validateWithMock } = await import(
       "../../src/validation.js"
@@ -356,7 +380,9 @@ describe("validation", () => {
     } catch (error) {
       const validationError = error as WebhookValidationError;
       expect(validationError.message).toContain("must be a valid HTTPS URL");
-      expect(validationError.suggestion).toContain("complete URL including the scheme");
+      expect(validationError.suggestion).toContain(
+        "complete URL including the scheme",
+      );
     }
   });
 
@@ -371,15 +397,20 @@ describe("validation", () => {
         },
       ],
     });
-    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
-      default: mockedValidator,
-    }));
+    vi.doMock(
+      "../../src/generated/email-received-event.validator.generated.js",
+      () => ({
+        default: mockedValidator,
+      }),
+    );
 
     const { validateEmailReceivedEvent: validateWithMock } = await import(
       "../../src/validation.js"
     );
 
-    expect(() => validateWithMock(validPayload)).toThrowError(/valid HTTPS URL/);
+    expect(() => validateWithMock(validPayload)).toThrowError(
+      /valid HTTPS URL/,
+    );
   });
 
   it("formats enum validation failures with allowed values", async () => {
@@ -393,9 +424,12 @@ describe("validation", () => {
         },
       ],
     });
-    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
-      default: mockedValidator,
-    }));
+    vi.doMock(
+      "../../src/generated/email-received-event.validator.generated.js",
+      () => ({
+        default: mockedValidator,
+      }),
+    );
 
     const { validateEmailReceivedEvent: validateWithMock } = await import(
       "../../src/validation.js"
@@ -428,9 +462,12 @@ describe("validation", () => {
         },
       ],
     });
-    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
-      default: mockedValidator,
-    }));
+    vi.doMock(
+      "../../src/generated/email-received-event.validator.generated.js",
+      () => ({
+        default: mockedValidator,
+      }),
+    );
 
     const { validateEmailReceivedEvent: validateWithMock } = await import(
       "../../src/validation.js"
@@ -456,9 +493,12 @@ describe("validation", () => {
         },
       ],
     });
-    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
-      default: mockedValidator,
-    }));
+    vi.doMock(
+      "../../src/generated/email-received-event.validator.generated.js",
+      () => ({
+        default: mockedValidator,
+      }),
+    );
 
     const { validateEmailReceivedEvent: validateWithMock } = await import(
       "../../src/validation.js"
@@ -478,9 +518,12 @@ describe("validation", () => {
         },
       ],
     });
-    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
-      default: mockedValidator,
-    }));
+    vi.doMock(
+      "../../src/generated/email-received-event.validator.generated.js",
+      () => ({
+        default: mockedValidator,
+      }),
+    );
 
     const { validateEmailReceivedEvent: validateWithMock } = await import(
       "../../src/validation.js"
@@ -500,7 +543,9 @@ describe("validation", () => {
       throw new Error("expected validation to fail");
     } catch (error) {
       const validationError = error as WebhookValidationError;
-      expect(validationError.suggestion).toContain('Expected the literal value "base64"');
+      expect(validationError.suggestion).toContain(
+        'Expected the literal value "base64"',
+      );
     }
   });
 
@@ -515,9 +560,12 @@ describe("validation", () => {
         },
       ],
     });
-    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
-      default: mockedValidator,
-    }));
+    vi.doMock(
+      "../../src/generated/email-received-event.validator.generated.js",
+      () => ({
+        default: mockedValidator,
+      }),
+    );
 
     const { validateEmailReceivedEvent: validateWithMock } = await import(
       "../../src/validation.js"
@@ -528,7 +576,9 @@ describe("validation", () => {
       throw new Error("expected validation to fail");
     } catch (error) {
       const validationError = error as WebhookValidationError;
-      expect(validationError.suggestion).toContain('"email.content.raw.encoding"');
+      expect(validationError.suggestion).toContain(
+        '"email.content.raw.encoding"',
+      );
     }
   });
 
@@ -543,9 +593,12 @@ describe("validation", () => {
         },
       ],
     });
-    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
-      default: mockedValidator,
-    }));
+    vi.doMock(
+      "../../src/generated/email-received-event.validator.generated.js",
+      () => ({
+        default: mockedValidator,
+      }),
+    );
 
     const { validateEmailReceivedEvent: validateWithMock } = await import(
       "../../src/validation.js"
@@ -562,7 +615,9 @@ describe("validation", () => {
       throw new Error("expected validation to fail");
     } catch (error) {
       const validationError = error as WebhookValidationError;
-      expect(validationError.message).toBe('Invalid version format: "not-a-date"');
+      expect(validationError.message).toBe(
+        'Invalid version format: "not-a-date"',
+      );
       expect(validationError.suggestion).toContain("YYYY-MM-DD");
     }
   });
@@ -602,15 +657,20 @@ describe("validation", () => {
         },
       ],
     });
-    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
-      default: mockedValidator,
-    }));
+    vi.doMock(
+      "../../src/generated/email-received-event.validator.generated.js",
+      () => ({
+        default: mockedValidator,
+      }),
+    );
 
     const { validateEmailReceivedEvent: validateWithMock } = await import(
       "../../src/validation.js"
     );
 
-    expect(() => validateWithMock(validPayload)).toThrowError(/must match pattern: \^em_/);
+    expect(() => validateWithMock(validPayload)).toThrowError(
+      /must match pattern: \^em_/,
+    );
   });
 
   it("formats non-url format failures with generic format guidance", async () => {
@@ -624,9 +684,12 @@ describe("validation", () => {
         },
       ],
     });
-    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
-      default: mockedValidator,
-    }));
+    vi.doMock(
+      "../../src/generated/email-received-event.validator.generated.js",
+      () => ({
+        default: mockedValidator,
+      }),
+    );
 
     const { validateEmailReceivedEvent: validateWithMock } = await import(
       "../../src/validation.js"
@@ -655,9 +718,12 @@ describe("validation", () => {
         },
       ],
     });
-    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
-      default: mockedValidator,
-    }));
+    vi.doMock(
+      "../../src/generated/email-received-event.validator.generated.js",
+      () => ({
+        default: mockedValidator,
+      }),
+    );
 
     const { validateEmailReceivedEvent: validateWithMock } = await import(
       "../../src/validation.js"
@@ -669,7 +735,9 @@ describe("validation", () => {
     } catch (error) {
       const validationError = error as WebhookValidationError;
       expect(validationError.message).toContain("must be a valid URI");
-      expect(validationError.suggestion).toContain("complete URL including the scheme");
+      expect(validationError.suggestion).toContain(
+        "complete URL including the scheme",
+      );
     }
   });
 
@@ -684,9 +752,12 @@ describe("validation", () => {
         },
       ],
     });
-    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
-      default: mockedValidator,
-    }));
+    vi.doMock(
+      "../../src/generated/email-received-event.validator.generated.js",
+      () => ({
+        default: mockedValidator,
+      }),
+    );
 
     const { validateEmailReceivedEvent: validateWithMock } = await import(
       "../../src/validation.js"
@@ -858,9 +929,12 @@ describe("validation", () => {
         },
       ],
     });
-    vi.doMock("../../src/generated/email-received-event.validator.generated.js", () => ({
-      default: mockedValidator,
-    }));
+    vi.doMock(
+      "../../src/generated/email-received-event.validator.generated.js",
+      () => ({
+        default: mockedValidator,
+      }),
+    );
 
     const { validateEmailReceivedEvent: validateWithMock } = await import(
       "../../src/validation.js"

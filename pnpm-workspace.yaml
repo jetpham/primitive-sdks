@@ -1,8 +1,0 @@
-packages:
-  - sdk-node
-  - contract-node
-
-onlyBuiltDependencies:
-  - "@biomejs/biome"
-  - esbuild
-  - rolldown
